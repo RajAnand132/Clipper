@@ -99,6 +99,18 @@ def split_hook(hook: str):
     return re.sub(r"\s{2,}", " ", EMOJI.sub("", text)).strip(), EMOJI.findall(text)[:2]
 
 
+KEYWORD_EMOJIS = {
+    "money": "💰", "cash": "💵", "rich": "🤑", "wealth": "💰", "profit": "📈", "expensive": "💎",
+    "fire": "🔥", "hot": "🔥", "burn": "🔥",
+    "win": "🏆", "winner": "🏆", "clutch": "🎯", "champion": "👑", "king": "👑",
+    "crazy": "🤯", "insane": "🤯", "mindblown": "🤯", "shocked": "😱", "omg": "😱", "danger": "⚠️", "warning": "⚠️",
+    "car": "🏎️", "drive": "🚗", "speed": "⚡", "fast": "⚡", "gun": "🔫", "shoot": "💥",
+    "love": "❤️", "heart": "❤️", "lol": "😂", "funny": "🤣", "laugh": "😂", "cry": "😭",
+    "dead": "💀", "skull": "💀", "ghost": "👻", "alien": "👽", "robot": "🤖", "rocket": "🚀",
+    "bhai": "🤝", "yaar": "😎", "gajab": "🔥", "panga": "🥊", "jugaad": "💡"
+}
+
+
 def emoji_png(ch: str, path: Path, px: int) -> bool:
     """One emoji as a see-through picture, px wide: from the emoji folder when it has this one, else drawn from the
     emoji font. False when there is neither (the emoji is then left out)."""
@@ -268,8 +280,11 @@ def _hook_events(hook, dur, y, info=None, look=None):
            f"l {n(x1)} {n(y1 - r)} b {n(x1)} {n(y1)} {n(x1)} {n(y1)} {n(x1 - r)} {n(y1)} "
            f"l {n(x0 + r)} {n(y1)} b {n(x0)} {n(y1)} {n(x0)} {n(y1)} {n(x0)} {n(y1 - r)} "
            f"l {n(x0)} {n(y0 + r)} b {n(x0)} {n(y0)} {n(x0)} {n(y0)} {n(x0 + r)} {n(y0)}")
-    span = f"{_ts(0)},{_ts(dur)}"
-    ev = [f"Dialogue: 3,{span},Hook,,0,0,0,,{{\\an7\\pos(0,0)\\fad(160,0)\\c&H{boxc}&\\p1}}{box}{{\\p0}}"] if boxed else []
+    # Smart hook fade: if video is longer than 4.5s, hook fades out at 3.5s so it doesn't block the video
+    hook_dur = min(dur, 3.5) if (look and look.get("fade", True) and dur > 4.5) else dur
+    fad_out = 350 if hook_dur < dur else 0
+    span = f"{_ts(0)},{_ts(hook_dur)}"
+    ev = [f"Dialogue: 3,{span},Hook,,0,0,0,,{{\\an7\\pos(0,0)\\fad(160,{fad_out})\\c&H{boxc}&\\p1}}{box}{{\\p0}}"] if boxed else []
     edge = look.get("outline", 0 if boxed else 6) if look else 0          # a black edge round the letters
     txt = (f"\\fn{font}\\c&H{ink}&" + (f"\\bord{edge}\\3c&H000000&" if edge else "")) if look else ""
     for i, line in enumerate(lines):
@@ -283,7 +298,7 @@ def _hook_events(hook, dur, y, info=None, look=None):
                 info["emoji"].append({"ch": ch, "x": int(round(x)), "y": int(round(mid - e_w(size) / 2)), "size": int(round(e_w(size)))})
                 x += e_w(size) + gap(size)
         if line:
-            ev.append(f"Dialogue: 4,{span},Hook,,0,0,0,,{{\\an5\\pos({cx:.0f},{mid - f.cap_shift(size):.0f})\\fad(160,0)\\fs{size}{txt}}}{line}")
+            ev.append(f"Dialogue: 4,{span},Hook,,0,0,0,,{{\\an5\\pos({cx:.0f},{mid - f.cap_shift(size):.0f})\\fad(160,{fad_out})\\fs{size}{txt}}}{line}")
     if info is not None:
         info["bottom"] = y1
     return ev
@@ -432,9 +447,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             wd = f.width(t, size)
             p = max(104, min(st["pop"], 100 + int(2200 / max(wd, 1)))) if st["pop"] > 100 else 100   # long words grow less, so they never touch their neighbours
             pos = f"\\an5\\pos({x + wd / 2:.0f},{cy:.0f})\\fs{size}"
+            word_cx = x + wd / 2
             x += wd + gap
             a = max(g_start, w["s"] - start)
             b = (g[i + 1]["s"] - start) if i + 1 < len(g) else g_end
+            kw_clean = _key(w["w"])
+            if info is not None and "emoji" in info and kw_clean in KEYWORD_EMOJIS and len(info["emoji"]) < 10:
+                e_sz = max(64, int(size * 0.7))
+                info["emoji"].append({
+                    "ch": KEYWORD_EMOJIS[kw_clean],
+                    "x": int(round(word_cx - e_sz / 2)),
+                    "y": int(round(cap_y - size * 0.92)),
+                    "size": e_sz,
+                    "start": a,
+                    "end": b + 0.35
+                })
             base = st["strong"] if _key(w["w"]) in strong else st["base"]
             anim = st["anim"]
             if anim == "none":                                                        # plain: the words just sit there
@@ -479,11 +506,11 @@ def _filter(layout, fg_h, facecam=None):
         fx, fy, fw, fh = (int(v) for v in facecam)
         if fw > 8 and fh > 8:
             pip_h = max(2, int(round(PIP_W * fh / fw)))
-            return (f"[0:v]fps={config.OUT_FPS},split=2[base][fc];"
+            return (f"[0:v]setpts=PTS-STARTPTS,fps={config.OUT_FPS},split=2[base][fc];"
                     f"[base]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[b];"
                     f"[fc]crop={fw}:{fh}:{fx}:{fy},scale={PIP_W}:{pip_h},setsar=1[p];"
                     f"[b][p]overlay={W - PIP_W - PIP_MARGIN}:{PIP_MARGIN}[v0];")
-    fill = f"[0:v]fps={config.OUT_FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}"
+    fill = f"[0:v]setpts=PTS-STARTPTS,fps={config.OUT_FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}"
     if layout == "crop" or (layout == "gameplay" and not facecam):
         return fill + ",setsar=1[v0];"
     if layout == "left":
@@ -491,12 +518,12 @@ def _filter(layout, fg_h, facecam=None):
     if layout == "right":
         return fill + ":in_w-out_w:0,setsar=1[v0];"
     if layout == "fit":
-        return f"[0:v]fps={config.OUT_FPS},scale={W}:{fg_h},pad={W}:{H}:0:(oh-ih)/2:black,setsar=1[v0];"
+        return f"[0:v]setpts=PTS-STARTPTS,fps={config.OUT_FPS},scale={W}:{fg_h},pad={W}:{H}:0:(oh-ih)/2:black,setsar=1[v0];"
     if layout == "split":
         half = f"scale={W}:{H // 2}:force_original_aspect_ratio=increase,crop={W}:{H // 2}"
-        return (f"[0:v]fps={config.OUT_FPS},split=2[l][r];[l]crop=iw/2:ih:0:0,{half}[t];"
+        return (f"[0:v]setpts=PTS-STARTPTS,fps={config.OUT_FPS},split=2[l][r];[l]crop=iw/2:ih:0:0,{half}[t];"
                 f"[r]crop=iw/2:ih:iw/2:0,{half}[u];[t][u]vstack,setsar=1[v0];")
-    return (f"[0:v]fps={config.OUT_FPS},split=2[a][b];"
+    return (f"[0:v]setpts=PTS-STARTPTS,fps={config.OUT_FPS},split=2[a][b];"
             f"[a]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,boxblur=6:2,"
             f"scale={W}:{H},eq=brightness=-0.14:saturation=1.15[bg];"
             f"[b]scale={W}:{fg_h}:force_original_aspect_ratio=increase,crop={W}:{fg_h}[fg];"
@@ -603,7 +630,7 @@ def cam_filter(cam, layout, fg_h, crop="", frame=None):
                 f"pad={W}:{H}:0:{gy}:black,setsar=1[vg];")
     else:
         game = _filter(layout, fg_h).replace("[0:v]", "[s0]" + crop, 1).replace("[v0];", "[vg];")
-    return ("[0:v]split=2[s0][s1];" + game +
+    return ("[0:v]setpts=PTS-STARTPTS,split=2[s0][s1];" + game +
             f"[s1]fps={fps},format=yuv420p,crop={cam['sw']}:{cam['sh']}:{cam['sx']}:{cam['sy']},"
             f"scale={cam['bw']}:{cam['bh']}:force_original_aspect_ratio=increase,crop={cam['bw']}:{cam['bh']},setsar=1"
             + (f",format=rgba[cr];[{frame['mask']}:v]format=gray,scale={cam['bw']}:{cam['bh']}[cmk];[cr][cmk]alphamerge[cm];"
@@ -709,11 +736,19 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
         png = work / f"{name}.e{i}.png"
         if emoji_png(e["ch"], png, e["size"]):
             more += ["-loop", "1", "-i", png.name]
-            fc += (f";[{n}:v]format=rgba,fade=t=in:st=0:d=0.16:alpha=1[e{i}];"
-                   f"[{last}][e{i}]overlay={e['x']}:{e['y']}:shortest=1[ve{i}]")
+            st_fade = e.get("start", 0)
+            enable = f":enable='between(t,{e['start']:.2f},{e['end']:.2f})'" if "start" in e else ""
+            fc += (f";[{n}:v]format=rgba,fade=t=in:st={st_fade:.2f}:d=0.14:alpha=1[e{i}];"
+                   f"[{last}][e{i}]overlay={e['x']}:{e['y']}:eof_action=pass:shortest=1{enable}[ve{i}]")
             last, n = f"ve{i}", n + 1
+    # Retention Progress Bar (0% -> 100% at bottom edge)
+    clip_dur = max(0.1, end - start)
+    bar_c = look.get("bar_color", "0x00F0FF@0.85") if isinstance(look, dict) else "0x00F0FF@0.85"
+    fc += f";[{last}]drawbox=x=0:y=ih-8:w='min(iw,iw*(t/{clip_dur:.2f}))':h=8:color={bar_c}:t=fill[vbar]"
+    last = "vbar"
     base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{end - start:.2f}", "-i", str(src), *more,
-            "-filter_complex", fc, "-map", f"[{last}]", "-map", "0:a:0", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
+            "-filter_complex", fc, "-map", f"[{last}]", "-map", "0:a:0",
+            "-af", "asetpts=PTS-STARTPTS,aresample=async=1:first_pts=0,loudnorm=I=-14:TP=-1.5:LRA=11",
             "-c:a", "aac", "-b:a", "160k", "-ar", "48000"]
     for k, v in (meta or {}).items():
         if v:
@@ -725,7 +760,7 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
     encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", "21", "-preset", "veryfast"]))
     err, ok = None, False
     for label, enc in encoders:
-        p = subprocess.run(base + enc + [f"{name}.mp4"], cwd=work, capture_output=True, text=True,
+        p = subprocess.run(base + enc + ["-t", f"{clip_dur:.2f}", f"{name}.mp4"], cwd=work, capture_output=True, text=True,
                            encoding="utf-8", errors="replace", creationflags=NO_WINDOW, timeout=RENDER_SECONDS)
         if p.returncode == 0:
             if label == "qsv":

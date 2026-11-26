@@ -29,9 +29,9 @@ _CAP = {"show": True, "anim": "pop", "font": "Poppins ExtraBold", "color": "FFFF
 _HOOK = {"show": True, "y": None, "font": "Poppins ExtraBold", "color": "0E1014", "bg": True, "bgc": "FFFFFF"}
 
 
-def _look(cap=None, layout="blur", hook=None, cam=None):
+def _look(cap=None, layout="blur", hook=None, cam=None, cam_style=None):
     return {"cap": {**_CAP, **(cap or {})}, "hook": {**_HOOK, **(hook or {})}, "layout": layout, "cam": cam,
-            "cam_src": None, "game_src": None}
+            "cam_style": cam_style or {"r": 14, "bw": 3, "bc": "6366F1"}, "cam_src": None, "game_src": None}
 
 
 # the three caption styles from before templates, exactly as they were drawn (render.STYLES had them)
@@ -54,6 +54,9 @@ BUILTIN = [
     {"id": "b-word", "name": "One word", "look": _look({"font": "Luckiest Guy", "size": 172, "hi": "FFE600", "outline": 9, "per": 1, "pop": 108})},
     {"id": "b-minimal", "name": "Minimal", "look": _look({"anim": "none", "size": 80, "outline": 0, "shadow": True,
                                                           "upper": False, "per": 5, "y": 76}, hook={"show": False})},
+    {"id": "b-hormozi", "name": "Hormozi Pill", "look": _look({"anim": "box", "font": "Poppins Black", "size": 124, "color": "FFFFFF", "hi": "22C55E", "outline": 0, "shadow": False, "per": 2, "pop": 115, "bg": True, "bgc": "141414"}, hook={"bg": True, "bgc": "22C55E", "color": "0E1014"})},
+    {"id": "b-mrbeast", "name": "MrBeast 3D", "look": _look({"anim": "pop", "font": "Anton", "size": 154, "color": "FFFFFF", "hi": "FFE600", "outline": 10, "shadow": True, "per": 2, "upper": True, "pop": 118}, hook={"bg": True, "bgc": "FFE600", "color": "0E1014"})},
+    {"id": "b-rapid", "name": "Rapid Fire", "look": _look({"anim": "pop", "font": "Luckiest Guy", "size": 175, "color": "FFFFFF", "hi": "00F0FF", "outline": 9, "shadow": True, "per": 1, "pop": 110, "y": 55}, hook={"show": False})},
     {"id": "b-full", "name": "Full screen", "look": _look(LEGACY["hype"], layout="crop")},
     {"id": "b-cam", "name": "Cam on top", "look": _look(LEGACY["bounce"], layout="crop", cam={"x": 0, "y": 0, "w": 100, "h": 40})},
 ]
