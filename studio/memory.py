@@ -39,6 +39,11 @@ def _save_json(file_path: Path, data):
     temp.replace(file_path)
 
 
+def _guess_format(data: dict) -> str:
+    from studio import formats
+    return formats.guess(data.get("genre", ""), data.get("visual_style", ""))
+
+
 # ---------------------------------------------------------------- Series Management
 
 def list_series() -> list[dict]:
@@ -55,6 +60,7 @@ def list_series() -> list[dict]:
                     "id": data["id"],
                     "title": data.get("title", d.name),
                     "genre": data.get("genre", "3D Animation"),
+                    "format": data.get("format") or _guess_format(data),
                     "visual_style": data.get("visual_style", "3D Pixar CGI"),
                     "default_language": data.get("default_language", "en"),
                     "aspect_ratio": data.get("aspect_ratio", "16:9"),
@@ -94,7 +100,8 @@ def create_series(
     aspect_ratio: str = "16:9",
     default_language: str = "en",
     characters: list[dict] | None = None,
-    series_id: str | None = None
+    series_id: str | None = None,
+    format: str = ""
 ) -> dict:
     """Creates a new ongoing series workspace."""
     sid = series_id or _slugify(title)
@@ -118,6 +125,7 @@ def create_series(
         "id": sid,
         "title": title.strip(),
         "genre": genre.strip(),
+        "format": format or _guess_format({"genre": genre, "visual_style": visual_style}),
         "visual_style": visual_style.strip(),
         "default_language": default_language.strip().lower() or "en",
         "aspect_ratio": aspect_ratio if aspect_ratio in ("16:9", "9:16") else "16:9",
@@ -135,7 +143,7 @@ def update_series(series_id: str, updates: dict) -> dict | None:
     series = get_series(series_id)
     if not series:
         return None
-    allowed = ["title", "genre", "visual_style", "default_language", "aspect_ratio"]
+    allowed = ["title", "genre", "visual_style", "default_language", "aspect_ratio", "format", "format_overrides"]
     for k in allowed:
         if k in updates:
             series[k] = updates[k]
@@ -310,6 +318,7 @@ def get_continuity_context(series_id: str) -> dict:
         "series_id": series.get("id"),
         "title": series.get("title"),
         "genre": series.get("genre"),
+        "format": series.get("format") or _guess_format(series),
         "visual_style": series.get("visual_style"),
         "default_language": series.get("default_language", "en"),
         "aspect_ratio": series.get("aspect_ratio", "16:9"),

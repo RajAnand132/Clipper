@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import threading
 from pathlib import Path
-from studio import config, concat, memory, render, storyteller, templates, tts, visuals
+from studio import config, formats, memory, production, visuals
 
 log = logging.getLogger("peakcut.series")
 
@@ -41,167 +41,115 @@ def _run_episode_pipeline(series_id: str, ep_num: int, script: dict):
         _active_tasks[key] = {"status": "failed", "error": "No scenes in script"}
         return
 
-    scene_videos = []
-    total_scenes = len(scenes)
-    aspect_ratio = series.get("aspect_ratio", "16:9")
+    # Auto-discover and register any new characters introduced in this episode
+    existing_char_names = {c.get("name", "").strip().lower() for c in series.get("characters", [])}
+    series_style = series.get("visual_style", "high-gloss 3D Pixar toy CGI")
 
-    # Add any newly introduced characters to character vault
-    for nc in script.get("new_characters", []):
-        memory.add_character(series_id, nc)
-
-    look = next((t["look"] for t in templates.BUILTIN if t["id"] == "b-hormozi"), templates.legacy())
-
-    for i, sc in enumerate(scenes):
-        idx = i + 1
-        _active_tasks[key] = {
-            "status": "rendering",
-            "progress": int(10 + (idx / total_scenes) * 75),
-            "message": f"Rendering Scene {idx}/{total_scenes}: {sc.get('setting', '')[:30]}..."
-        }
-
-        # 1. Synthesize Audio
-        audio_file = ep_dir / f"scene_{idx:02d}.mp3"
-        dialogue = sc.get("dialogue", "").strip()
-        voice_id = sc.get("voice_id", "en-US-ChristopherNeural")
-        words = tts.synthesize_scene_voice(dialogue, voice_id, audio_file)
-
-        # 2. Determine Duration
-        audio_dur = concat._get_duration(audio_file)
-        target_scene_dur = float(sc.get("duration_sec") or 55.0)
-        dur = max(4.0, audio_dur + 0.8, target_scene_dur)
-
-        # 3. Generate 3D Visual Keyframe
-        img_file = ep_dir / f"scene_{idx:02d}.jpg"
-        v_prompt = sc.get("visual_prompt", f"{sc.get('setting')}, 3d pixar animation style")
-        visuals.generate_scene_frame(v_prompt, img_file, aspect_ratio=aspect_ratio)
-
-        # 4. Render Dynamic 3D Animated Scene with Multi-character Staging & Parallax
-        raw_video = ep_dir / f"scene_{idx:02d}_raw.mp4"
-        motion = sc.get("camera_motion", "dolly_in")
-        speaker_name = sc.get("speaker", "Character")
-
-        # Determine characters present in the scene
-        series_chars = series.get("characters", [])
-        scene_char_names = sc.get("characters", [])
-        if not scene_char_names and speaker_name.lower() != "narrator":
-            scene_char_names = [speaker_name]
-
-        scene_chars = []
-        for cn in scene_char_names:
-            c_obj = next((c for c in series_chars if c.get("name", "").lower() == cn.lower()), None)
-            if c_obj:
-                scene_chars.append(c_obj)
-            else:
-                scene_chars.append({"name": cn, "species": "Character", "visual_anchor": ""})
-
-        # If only 1 character is present, bring companion if series has 2+ characters
-        # so scenes feature lively two-shot conversation and interaction
-        if len(scene_chars) == 1 and len(series_chars) >= 2:
-            companion = next((c for c in series_chars if c.get("name", "").lower() != scene_chars[0].get("name", "").lower()), None)
-            if companion:
-                scene_chars.append(companion)
-        elif len(scene_chars) == 0 and len(series_chars) >= 2:
-            scene_chars = series_chars[:2]
-        elif len(scene_chars) == 0 and len(series_chars) == 1:
-            scene_chars = series_chars[:1]
-
-        speaker_char = next((c for c in series_chars if c.get("name", "").lower() == speaker_name.lower()), None)
-        sp_species = speaker_char.get("species", "Character") if speaker_char else "Animal"
-        sp_anchor = speaker_char.get("visual_anchor", "") if speaker_char else series.get("visual_style", "")
-
-        ok_3d = visuals.render_3d_animated_scene(
-            characters=scene_chars,
-            speaker_name=speaker_name,
-            character_name=speaker_name,
-            character_species=sp_species,
-            visual_anchor=sp_anchor,
-            setting=sc.get("setting", series.get("title", "3D Animated World")),
-            visual_style=series.get("visual_style", "whimsical 3D cartoon"),
-            audio_path=audio_file,
-            out_mp4=raw_video,
-            duration=dur,
-            motion=motion,
-            aspect_ratio=aspect_ratio
-        )
-        if not ok_3d or not raw_video.is_file():
-            visuals.render_parallax_motion(img_file, audio_file, raw_video, dur, motion=motion, aspect_ratio=aspect_ratio)
-
-        # 5. Apply Subtitles cleanly at the bottom
-        final_video = ep_dir / f"scene_{idx:02d}_final.mp4"
-        if words and raw_video.is_file():
+    # 1. Check pitch new_character
+    pitch_or_idea = script.get("pitch") or {}
+    if isinstance(pitch_or_idea, dict) and pitch_or_idea.get("new_character"):
+        nc = pitch_or_idea["new_character"]
+        nc_name = nc.get("name", "").strip().lower()
+        if nc_name and nc_name not in existing_char_names:
+            memory.add_character(series_id, nc)
             try:
-                # Align words to start of scene audio
-                w_h = (1920, 1080) if aspect_ratio == "16:9" else (1080, 1920)
-                # Bottom placement: 89% height (960 in 1080p, 1650 in 1920 vertical)
-                cap_y = 960 if aspect_ratio == "16:9" else 1650
-                cap_style = dict(look.get("cap", look), size=84 if aspect_ratio == "16:9" else 112)
-                ass_content = render.build_ass(
-                    words, 0.0, dur,
-                    "",  # No hook headline on episode scenes
-                    cap_style,
-                    [],
-                    0,
-                    cap_y,
-                    show_hook=False,
-                    hook_look=look.get("hook"),
-                    play_res=w_h
-                )
-                ass_file = ep_dir / f"scene_{idx:02d}.ass"
-                ass_file.write_text(ass_content, encoding="utf-8")
-                
-                # Apply ASS filter via FFmpeg with fontsdir
-                fonts_dir = Path(__file__).resolve().parent / "fonts"
-                f_dir_str = str(fonts_dir).replace("\\", "/").replace(":", "\\:")
-                sub_cmd = [
-                    "ffmpeg", "-y", "-v", "error",
-                    "-i", str(raw_video),
-                    "-vf", f"ass={ass_file.name}:fontsdir='{f_dir_str}'",
-                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-                    "-c:a", "copy",
-                    str(final_video)
-                ]
-                p = render.subprocess.run(sub_cmd, cwd=ep_dir, capture_output=True, text=True,
-                                          creationflags=render.NO_WINDOW, timeout=60)
-                if p.returncode != 0 or not final_video.is_file():
-                    final_video = raw_video
-            except Exception as e:
-                log.warning("Subtitle burn failed on scene %s: %s", idx, e)
-                final_video = raw_video
-        else:
-            final_video = raw_video
+                visuals.generate_character_avatar(series_id, nc, series_style)
+            except Exception as ce:
+                log.warning("Could not generate avatar for pitch character %s: %s", nc_name, ce)
+            existing_char_names.add(nc_name)
 
-        if final_video.is_file():
-            scene_videos.append(final_video)
+    # 2. Check script new_characters
+    for nc in script.get("new_characters", []):
+        nc_name = nc.get("name", "").strip().lower()
+        if nc_name and nc_name not in existing_char_names:
+            memory.add_character(series_id, nc)
+            try:
+                visuals.generate_character_avatar(series_id, nc, series_style)
+            except Exception as ce:
+                log.warning("Could not generate avatar for script character %s: %s", nc_name, ce)
+            existing_char_names.add(nc_name)
 
-    # 6. Stitch all scenes into Master Long Video
-    _active_tasks[key] = {"status": "rendering", "progress": 90, "message": "Stitching scenes into Master Video..."}
-    master_video = ep_dir / f"episode_{ep_num:03d}_master.mp4"
-    ok = concat.stitch_scenes(scene_videos, master_video, transition_dur=0.5)
+    # 3. Anyone who speaks or appears in a scene but is not in the vault yet gets a profile (look in the
+    #    series' style, a voice in its language that differs from the voices already taken)
+    fmt = formats.resolve(series)
+    lang = (series.get("default_language") or "en").lower()
+    from studio import tts
+    taken = {c.get("voice_id") for c in series.get("characters", [])}
+    for sc in scenes:
+        names = ([sc.get("speaker", "")] + [ln.get("speaker", "") for ln in sc.get("lines", []) or []]
+                 + list(sc.get("characters", []) or []))
+        voice_hint = {ln.get("speaker", "").strip().lower(): ln.get("voice_id") for ln in sc.get("lines", []) or []}
+        for name in names:
+            name = (name or "").strip()
+            if not name or name.lower() in ("narrator", "") or name.lower() in existing_char_names:
+                continue
+            voice = voice_hint.get(name.lower()) or tts.pick_voice(lang, f"{name} {sc.get('setting', '')}", taken | {
+                formats.narrator_voice(fmt, lang)})
+            taken.add(voice)
+            new_c = {
+                "id": memory._slugify(name),
+                "name": name,
+                "species": "Character",
+                "visual_anchor": f"{name}, distinctive consistent look, {fmt['visual']['style'][:80]}",
+                "voice_id": voice,
+                "personality": "Introduced in this episode"
+            }
+            memory.add_character(series_id, new_c)
+            try:
+                visuals.generate_character_avatar(series_id, new_c, series_style)
+            except Exception as ce:
+                log.warning("Could not generate avatar for %s: %s", name, ce)
+            existing_char_names.add(name.lower())
 
-    # 7. Generate 9:16 Teaser Short
-    teaser_short = ep_dir / f"episode_{ep_num:03d}_short.mp4"
-    if ok and aspect_ratio == "16:9":
-        concat.cut_teaser_short(master_video, teaser_short, max_dur=45.0)
+    # Ensure all existing series characters have an avatar on disk
+    series = memory.get_series(series_id) or series
+    for c in series.get("characters", []):
+        cid = c.get("id") or memory._slugify(c.get("name", "character"))
+        c_avatar = config.DATA_DIR / "series" / series_id / "characters" / f"{cid}.jpg"
+        if not c_avatar.is_file():
+            try:
+                visuals.generate_character_avatar(series_id, c, series_style)
+            except Exception as ce:
+                log.warning("Could not generate missing avatar for %s: %s", cid, ce)
 
-    # 8. Finalize Episode Record
-    total_dur = concat._get_duration(master_video) if master_video.is_file() else 0.0
+    # Produce: voices, shots, motion, grade, captions, stitching, music, short (studio/production.py)
+    series = memory.get_series(series_id) or series
+
+    def progress(pct, msg):
+        _active_tasks[key] = {"status": "rendering", "progress": int(pct), "message": msg}
+
+    try:
+        res = production.build_episode(series, ep_num, script, ep_dir, progress=progress)
+    except Exception as e:  # noqa: BLE001
+        log.exception("Episode %s:%s production failed", series_id, ep_num)
+        res = {"ok": False, "error": str(e)}
+    ok = bool(res.get("ok"))
+    master_video = res.get("master") or (ep_dir / f"episode_{ep_num:03d}_master.mp4")
+    teaser_short = res.get("short") or (ep_dir / f"episode_{ep_num:03d}_short.mp4")
+    saved_scenes = [{k: v for k, v in sc.items() if k != "cast"} for sc in (res.get("scenes") or scenes)]
+
+    # Finalize Episode Record
+    total_dur = float(res.get("duration") or 0.0)
     ep_data = {
         "episode_num": ep_num,
         "title": script.get("title", f"Episode {ep_num}"),
         "summary": script.get("synopsis", ""),
         "unresolved_hook": script.get("unresolved_hook", ""),
-        "featured_characters": list({sc.get("speaker") for sc in scenes if sc.get("speaker")}),
+        "featured_characters": sorted({ln.get("speaker") for sc in saved_scenes for ln in sc.get("lines", [])
+                                       if ln.get("speaker") and ln.get("speaker").lower() != "narrator"}),
         "status": "completed" if ok else "failed",
-        "script": scenes,
+        "script": saved_scenes,
+        "format": res.get("format", series.get("format", "")),
         "duration": round(total_dur, 2),
-        "video_file": str(master_video.relative_to(config.DATA_DIR)) if master_video.is_file() else "",
+        "video_file": str(master_video.relative_to(config.DATA_DIR)) if ok and master_video.is_file() else "",
         "short_file": str(teaser_short.relative_to(config.DATA_DIR)) if teaser_short.is_file() else ""
     }
     memory.add_episode(series_id, ep_data)
     _active_tasks[key] = {
         "status": "completed" if ok else "failed",
         "progress": 100,
-        "message": "Production complete!",
+        "message": "Production complete!" if ok else (res.get("error") or "Production failed"),
+        "error": "" if ok else (res.get("error") or "Production failed"),
         "ep_num": ep_num,
         "video_file": ep_data["video_file"],
         "short_file": ep_data["short_file"],

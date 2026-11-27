@@ -2571,7 +2571,19 @@ def admin_delete_user(request: Request, uid: str, body: dict = Body(...)):
 
 
 # ---------------------------------------------------------------- AI Series & Story Studio (Plan 05)
-from . import memory, storyteller, series as series_engine, tts, visuals
+from . import formats as video_formats, memory, providers as gen_providers, storyteller, series as series_engine, tts, visuals
+
+
+@app.get("/api/studio/formats")
+def _studio_formats():
+    """Every kind of video the AI Studio can make (studio/formats.py)."""
+    return {"formats": video_formats.list_formats(), "default": video_formats.DEFAULT_FORMAT}
+
+
+@app.get("/api/studio/providers")
+def _studio_providers():
+    """Which picture and motion services are set up (studio/providers.py)."""
+    return gen_providers.status()
 
 
 @app.get("/api/series/voices")
@@ -2599,6 +2611,8 @@ def _get_series_organizer():
             eps.append({
                 "episode_num": ep_num,
                 "title": ep.get("title", f"Episode {ep_num}"),
+                "summary": ep.get("summary", ""),
+                "featured_characters": ep.get("featured_characters", []),
                 "status": ep.get("status", "draft"),
                 "duration": ep.get("duration", 0),
                 "has_master": master_p.is_file(),
@@ -2634,11 +2648,29 @@ def _create_series(body: dict = Body(...)):
     title = str(body.get("title") or "").strip()
     if not title:
         raise HTTPException(400, "Series title is required")
+    fmt_id = str(body.get("format") or "")
+    fmt = video_formats.get(fmt_id) if fmt_id in video_formats.FORMATS else None
+    # every seeded character gets its own voice in the show's language (the form sends one voice for all)
+    lang = str(body.get("default_language") or "en").lower()
+    pool = [v["id"] for v in tts.list_voices(lang)]
+    narrator = video_formats.narrator_voice(fmt or video_formats.get(None), lang)
+    taken = {narrator}
+    for c in body.get("characters") or []:
+        if not isinstance(c, dict):
+            continue
+        v = c.get("voice_id")
+        hint = f"{c.get('name', '')} {c.get('species', '')} {c.get('visual_anchor', '')}"
+        if not v or v in taken or (pool and v not in pool) or tts.guess_gender(hint) == "female" and \
+                next((x["gender"] for x in tts.VOICE_CATALOG if x["id"] == v), "female") != "female":
+            v = tts.pick_voice(lang, hint, taken)
+        c["voice_id"] = v
+        taken.add(v)
     s = memory.create_series(
         title=title,
-        genre=str(body.get("genre") or "3D Cartoon Adventure"),
-        visual_style=str(body.get("visual_style") or "high-gloss 3D Pixar toy CGI, octane render, soft volumetric lighting, vibrant primary colors, 8k"),
-        aspect_ratio=str(body.get("aspect_ratio") or "16:9"),
+        genre=str(body.get("genre") or (fmt["name"] if fmt else "3D Cartoon Adventure")),
+        visual_style=str(body.get("visual_style") or (fmt["visual"]["style"] if fmt else "high-gloss 3D Pixar toy CGI, octane render, soft volumetric lighting, vibrant primary colors, 8k")),
+        aspect_ratio=str(body.get("aspect_ratio") or (fmt["aspect_ratio"] if fmt else "16:9")),
+        format=fmt_id if fmt else "",
         default_language=str(body.get("default_language") or "en"),
         characters=body.get("characters") or []
     )
@@ -2812,12 +2844,23 @@ def _generate_series_script(sid: str, body: dict = Body(...)):
         target_scenes = max(3, min(25, int(round(float(target_dur_min) * 60 / scene_duration))))
     else:
         target_scenes = int(body.get("target_scenes") or 12)
-    return storyteller.generate_episode_script(
+    script = storyteller.generate_episode_script(
         sid, pitch,
         target_scenes=target_scenes,
         scene_duration=scene_duration,
         target_duration_min=float(target_dur_min) if target_dur_min else None
     )
+    if isinstance(script, dict) and script.get("error"):
+        raise HTTPException(503, script["error"])
+    return script
+
+
+@app.post("/api/series/{sid}/generate-scene")
+def _generate_series_scene(sid: str, body: dict = Body(...)):
+    s = memory.get_series(sid)
+    if not s:
+        raise HTTPException(404, "Series not found")
+    return storyteller.generate_single_scene(sid, body)
 
 
 @app.post("/api/series/{sid}/episodes/{ep_num}/approve")

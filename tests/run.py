@@ -76,6 +76,7 @@ def main() -> int:
                 ("long logs, the machine monitor, failed recordings, admin day totals", ["tests/test_robustness.py"]),
                 ("speech models for other languages: Arabic, downloads, the second machine", ["tests/test_speech.py"]),
                 ("post text: write again with AI, edit, post without re-making", ["tests/test_post_text.py"]),
+                ("AI Studio: formats, voices, shots, music and a whole episode, offline", ["tests/test_production.py"]),
                 ("live recording stops and empty stream URLs", ["tests/test_live.py"]),
                 ("deleting keeps what was not asked for; a stopped stream is skipped", ["tests/test_keep_on_delete.py"]),
                 ("content schedule: by day, moved, posted now, owner only", ["tests/test_schedule.py"]),

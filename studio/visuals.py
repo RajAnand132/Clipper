@@ -5,10 +5,12 @@ Features a high-gloss 3D procedural cartoon avatar and environment rendering eng
 """
 from __future__ import annotations
 
+import io
 import logging
 import math
 import random
 import subprocess
+import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -758,31 +760,17 @@ def draw_3d_scene_fallback(prompt: str, out_path: Path, aspect_ratio: str = "16:
         return False
 
 
-def generate_scene_frame(prompt: str, out_path: Path, aspect_ratio: str = "16:9") -> bool:
-    """Generates a high-quality 3D scene frame from a prompt."""
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    w, h = (1280, 720) if aspect_ratio == "16:9" else (720, 1280)
-
-    clean_p = prompt.replace("\n", " ").strip()
-    encoded = urllib.parse.quote(clean_p)
-    url = f"https://image.pollinations.ai/prompt/{encoded}?width={w}&height={h}&seed=42"
-
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            data = resp.read()
-            if len(data) > 5000:
-                out_path.write_bytes(data)
-                return True
-    except Exception as e:
-        log.warning("Cloud 3D visual generation error: %s. Using procedural 3D landscape frame.", e)
-
-    # High quality multi-plane 3D cartoon environment fallback
-    return draw_3d_scene_fallback(prompt, out_path, aspect_ratio=aspect_ratio)
+def generate_scene_frame(prompt: str, out_path: Path, aspect_ratio: str = "16:9", seed: int | None = None,
+                         negative: str = "") -> bool:
+    """Generates one picture through the provider chain (studio/providers.py: free cloud, your own ComfyUI or
+    image API, then the local procedural painter), cropped to the exact size for the aspect ratio."""
+    from studio import providers
+    return providers.generate_image(" ".join(prompt.split()), out_path, aspect_ratio,
+                                    negative=negative, seed=seed) is not None
 
 
 def generate_character_avatar(series_id: str, character: dict, visual_style: str = "high-gloss 3D Pixar toy CGI") -> Path | None:
-    """Generates a high-gloss 3D character portrait preview in the series character vault."""
+    """Generates a high-quality 3D character portrait in the series character vault (supports humans, animals, sci-fi)."""
     from studio import config
     sid = series_id
     cid = character.get("id") or character.get("name", "character").lower().replace(" ", "-")
@@ -791,10 +779,20 @@ def generate_character_avatar(series_id: str, character: dict, visual_style: str
     out_file = out_dir / f"{cid}.jpg"
 
     char_name = character.get("name", "Character")
-    species = character.get("species", "")
-    visual = character.get("visual_anchor") or "cute 3d character, vibrant colors, expressive eyes"
+    species = character.get("species", "Character")
+    visual = character.get("visual_anchor") or f"3D character {char_name}, expressive eyes, detailed attire"
 
-    # 1. Try procedural 3D Pixar toy engine directly for instant, guaranteed high-gloss result
+    # 1. Try real AI image generation for true 3D character design portrait
+    from studio import providers
+    prompt = f"Character portrait of {char_name}, {species}, {visual}. {visual_style}. Character design sheet, centered close-up portrait, plain background"
+    # real image services only: when none answers, the drawn cartoon avatar below beats a drawn landscape
+    chain = [n for n in providers.image_chain() if n != "procedural"]
+    ok = bool(chain) and providers.generate_image(prompt, out_file, "1:1", seed=providers.stable_seed(sid, cid),
+                                                  chain=chain) is not None
+    if ok and out_file.is_file() and out_file.stat().st_size > 5000:
+        return out_file
+
+    # 2. Try procedural 3D cartoon avatar as secondary fallback
     success = draw_3d_cartoon_avatar(
         name=char_name,
         species=species,
@@ -806,7 +804,7 @@ def generate_character_avatar(series_id: str, character: dict, visual_style: str
     if success:
         return out_file
 
-    # 2. Secondary fallback
+    # 3. Tertiary fallback
     if draw_3d_scene_fallback(f"3D character {char_name}", out_file):
         return out_file
     return None

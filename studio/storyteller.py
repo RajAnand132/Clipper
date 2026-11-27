@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from studio import ai, config, memory, tts
+from studio import ai, config, formats, memory, tts
 
 log = logging.getLogger("peakcut.storyteller")
 
@@ -34,6 +34,31 @@ PITCH_SCHEMA = {
             }
         },
         "required": ["id", "type", "title", "logline", "hook", "featured_characters"]
+    }
+}
+
+LINES_SCHEMA = {
+    "type": "ARRAY",
+    "items": {
+        "type": "OBJECT",
+        "properties": {
+            "speaker": {"type": "STRING"},
+            "text": {"type": "STRING"},
+            "emotion": {"type": "STRING"}
+        },
+        "required": ["speaker", "text"]
+    }
+}
+
+SHOTS_SCHEMA = {
+    "type": "ARRAY",
+    "items": {
+        "type": "OBJECT",
+        "properties": {
+            "visual_prompt": {"type": "STRING"},
+            "camera_motion": {"type": "STRING"}
+        },
+        "required": ["visual_prompt"]
     }
 }
 
@@ -70,13 +95,33 @@ SCRIPT_SCHEMA = {
                     "dialogue": {"type": "STRING"},
                     "voice_id": {"type": "STRING"},
                     "camera_motion": {"type": "STRING"},
-                    "visual_prompt": {"type": "STRING"}
+                    "visual_prompt": {"type": "STRING"},
+                    "lines": LINES_SCHEMA,
+                    "shots": SHOTS_SCHEMA,
+                    "teaser": {"type": "BOOLEAN"}
                 },
                 "required": ["scene_num", "duration_sec", "setting", "speaker", "dialogue", "visual_prompt"]
             }
-        }
+        },
+        "music_mood": {"type": "STRING"}
     },
     "required": ["title", "synopsis", "scenes"]
+}
+
+SINGLE_SCENE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "scene_num": {"type": "INTEGER"},
+        "duration_sec": {"type": "NUMBER"},
+        "setting": {"type": "STRING"},
+        "characters": {"type": "ARRAY", "items": {"type": "STRING"}},
+        "speaker": {"type": "STRING"},
+        "dialogue": {"type": "STRING"},
+        "voice_id": {"type": "STRING"},
+        "camera_motion": {"type": "STRING"},
+        "visual_prompt": {"type": "STRING"}
+    },
+    "required": ["scene_num", "duration_sec", "setting", "speaker", "dialogue", "visual_prompt"]
 }
 
 
@@ -100,9 +145,11 @@ def pitch_next_episodes(series_id: str) -> list[dict]:
 
     lang_inst = f"Language: Hindi. Write titles, loglines, and hooks in natural, friendly Hindi (Devanagari script or clean transliteration appropriate for kids/family animation). Assign Hindi voice_ids (e.g. '{def_voice}')." if lang == "hi" else f"Language: {lang.upper()}. Write titles, loglines, and hooks in this language with voice_id '{def_voice}'."
 
-    prompt = f"""You are the Lead Story Director for a 3D animated series titled "{ctx.get('title')}".
+    fmt = formats.resolve(memory.get_series(series_id))
+    angles = fmt["story"]["pitch_types"]
+    prompt = f"""You are the Lead Story Director for the series "{ctx.get('title')}".
 Genre: {ctx.get('genre')}
-Visual Style Aesthetic: {ctx.get('visual_style')}
+{formats.story_brief(fmt)}
 {lang_inst}
 
 EXISTING CHARACTERS:
@@ -115,10 +162,10 @@ LATEST UNRESOLVED HOOK / CLIFFHANGER:
 {latest_hook or "Fresh start for the series."}
 
 TASK:
-Propose exactly 3 unique, compelling story concepts for upcoming Episode {ep_num}:
-1. "adventure": An exploration, outdoor journey, or high-energy team mission.
-2. "mystery": A puzzle, hidden object, curious secret, or investigation (especially picking up on prior hooks).
-3. "new_character": Introducing a charming new companion, guest, or cute creature to the ensemble.
+Propose exactly 3 unique, compelling story concepts for upcoming Episode {ep_num}, one for each angle
+(set "type" to the angle name): {", ".join(f'"{a}"' for a in angles)}.
+Each must fit the format's tone and audience. Pick up prior hooks where it makes sense. Fill "new_character" only
+when a new person or creature joins the cast.
 
 Format output strictly according to the schema.
 """
@@ -213,9 +260,10 @@ def generate_episode_script(
             target_scenes = max(3, min(25, int(round(target_min * 60 / scene_duration))))
     else:
         target_min = max(1, round(target_scenes * scene_duration / 60))
-    prompt = f"""You are the Lead Screenwriter & Visual Director for a long-form YouTube 3D animated series titled "{ctx.get('title')}".
+    fmt = formats.resolve(memory.get_series(series_id))
+    prompt = f"""You are the Lead Screenwriter & Visual Director for the YouTube series "{ctx.get('title')}".
 Genre: {ctx.get('genre')}
-Global 3D Visual Style: {ctx.get('visual_style')}
+{formats.story_brief(fmt)}
 Aspect Ratio: {ctx.get('aspect_ratio', '16:9')}
 {lang_rule}
 
@@ -241,11 +289,25 @@ MANDATORY RULES FOR LONG-FORM VIDEO & SCENE LENGTH:
    - If a character is speaking, they can speak multiple sentences explaining their idea, reacting, asking questions, and advancing the scene.
 
 3. Assign the correct 'voice_id' for each speaker based on the character vault (default narrator voice: '{def_narrator_voice}').
-4. 'visual_prompt': Highly detailed 3D prompt for image generation (written in English for best AI image synthesis):
+4. 'visual_prompt': Highly detailed image-generation prompt (in English) matching the VISUAL STYLE DNA above:
    - Must explicitly describe the characters in frame using their persistent visual anchors.
    - Specify spatial positioning (e.g., 'Character A on the left smiling, Character B on the right pointing...').
-   - Detail the rich 3D environment, warm lighting, volumetric depth, and high-gloss Pixar/CGI textures.
-5. End with an intriguing 'unresolved_hook' that sets up the next episode.
+   - Describe environment, lighting, mood and lens so it matches the format (dark and foggy for horror, bright for kids...).
+4b. 'lines': the scene's spoken track as separate lines, in order: [{{"speaker": "Narrator" or a character name,
+    "text": "...", "emotion": one of calm|happy|excited|sad|scared|angry|whisper|mysterious}}].
+    'dialogue' must contain exactly the same lines written as "Speaker: text", one per line.
+4c. 'shots': 2 to 4 camera shots for the scene, each {{"visual_prompt": "...", "camera_motion": one of
+    dolly_in|dolly_out|pan_left|pan_right|tilt_up|tilt_down|zoom_punch|creep_in|drift_left|drift_right|shake|static}}.
+    Vary framing (wide, medium, close-up, detail). The first shot's visual_prompt equals 'visual_prompt'.
+4d. Set "teaser": true on the ONE scene that would make the best 45-second vertical teaser (the most gripping moment).
+4e. Set "music_mood" for the episode: one of calm|playful|wonder|lullaby|epic|horror|tension|emotional|upbeat|synth|chiptune|quirky|jazz_noir.
+5. COMPLETE EPISODIC STORY ARC (DO NOT CUT OFF IN BETWEEN):
+   - The episode MUST be a complete standalone adventure that resolves its main quest or mystery within these {target_scenes} scenes!
+   - Scenes 1 to 3: The Setup & Inciting Incident (discovering the mystery or problem).
+   - Scenes 4 to {max(4, target_scenes - 3)}: The Investigation & Journey (overcoming obstacles, exploring temples/locations, working together).
+   - Scenes {max(5, target_scenes - 2)} to {max(5, target_scenes - 1)}: THE CLIMAX & COMPLETE RESOLUTION (solving the central mystery, restoring the lost items/stars, triumphant celebration).
+   - Final Scene {target_scenes}: Warm emotional reflection, gratitude, and a thrilling surprise cliffhanger/hook ('unresolved_hook') that teases the next episode!
+   - The 'synopsis' field MUST describe the COMPLETE story arc from initial incident to triumphant resolution, never ending abruptly mid-sentence.
 """
 
     models = ai.models() or ["gemini-2.5-flash", "gemini-3.5-flash-lite"]
@@ -262,6 +324,7 @@ MANDATORY RULES FOR LONG-FORM VIDEO & SCENE LENGTH:
                             s["voice_id"] = char_map[spk]["voice_id"]
                         else:
                             s["voice_id"] = def_narrator_voice
+                    _sync_legacy_fields(s)
                     if not s.get("camera_motion"):
                         s["camera_motion"] = "dolly_in"
                     if not s.get("duration_sec") or s.get("duration_sec") < 20:
@@ -271,7 +334,10 @@ MANDATORY RULES FOR LONG-FORM VIDEO & SCENE LENGTH:
         except Exception as e:
             log.warning("Storyteller script generation failed on model %s: %s", m, e)
 
-    # Robust multi-scene episodic fallback (for long-form videos: up to 24 scenes)
+    # Robust multi-scene episodic fallback (for long-form videos: up to 24 scenes). It is a farm story, so only
+    # kids & family formats use it; any other format says plainly that the AI is needed.
+    if fmt.get("category") != "Kids & Family":
+        return {"error": f"The AI could not write this {fmt['name']} script. Check the AI page (key, model, limits) and try again."}
     return _build_multi_scene_fallback(series_id, pitch_or_idea, target_scenes=target_scenes, scene_duration=scene_duration)
 
 
@@ -388,6 +454,190 @@ def _build_multi_scene_fallback(series_id: str, pitch_or_idea: dict | str, targe
     }
     fallback_script["narrative_walkthrough"] = build_narrative_walkthrough(series_id, fallback_script, ep_num=len(ctx.get("episodes", [])) + 1)
     return fallback_script
+
+
+def generate_single_scene(series_id: str, context: dict) -> dict:
+    """Generates or auto-completes a single episodic scene based on full story context and prior scenes."""
+    ctx = memory.get_continuity_context(series_id)
+    if not ctx:
+        return {}
+
+    chars = ctx.get("characters", [])
+    lang = (ctx.get("default_language") or "en").lower()
+    def_narrator_voice = tts.default_voice_for_lang(lang)
+    char_map = {c["name"].lower(): c for c in chars}
+    char_desc = "\n".join([f"- {c['name']} (Voice: {c.get('voice_id', def_narrator_voice)}): Visual: {c.get('visual_anchor', '')}" for c in chars]) or "None yet."
+
+    title = context.get("title") or context.get("episode_title") or ctx.get("title") or "Episode"
+    synopsis = context.get("synopsis") or "An exciting 3D adventure"
+    scenes = context.get("scenes") or []
+    target_scene_num = int(context.get("target_scene_num") or (len(scenes) + 1))
+    target_dur = float(context.get("target_duration") or context.get("scene_duration") or 60)
+    user_instruction = (context.get("instruction") or "").strip()
+
+    prior_scenes_summary = []
+    for sc in scenes:
+        num = sc.get("scene_num") or 1
+        if num < target_scene_num:
+            dlg = (sc.get("dialogue") or "").strip()
+            dlg_preview = (dlg[:160] + "...") if len(dlg) > 160 else dlg
+            prior_scenes_summary.append(
+                f"Scene {num} [{sc.get('setting', 'Unknown')}]: Speaker={sc.get('speaker', 'Narrator')}. Dialogue: \"{dlg_preview}\""
+            )
+
+    following_scenes_summary = []
+    for sc in scenes:
+        num = sc.get("scene_num") or 1
+        if num > target_scene_num:
+            dlg = (sc.get("dialogue") or "").strip()
+            dlg_preview = (dlg[:120] + "...") if len(dlg) > 120 else dlg
+            following_scenes_summary.append(
+                f"Scene {num} [{sc.get('setting', 'Unknown')}]: Speaker={sc.get('speaker', 'Narrator')}. Dialogue: \"{dlg_preview}\""
+            )
+
+    prior_ctx_text = "\n".join(prior_scenes_summary) if prior_scenes_summary else "This is the opening scene (Scene 1) of the episode."
+    following_ctx_text = f"\nSubsequent Scene Plans:\n" + "\n".join(following_scenes_summary) if following_scenes_summary else ""
+    instruction_text = f"\nDirector's Specific Scene Direction: {user_instruction}\n" if user_instruction else ""
+
+    lang_rule = (
+        f"Language Requirement: HINDI. Write the 'dialogue' in natural, engaging Hindi (Devanagari script), e.g. 'अरे देखो! यहाँ क्या है!'. Default narrator voice_id: '{def_narrator_voice}'."
+        if lang == "hi"
+        else f"Language Requirement: {lang.upper()}. Write 'dialogue' in this language. Default narrator voice_id: '{def_narrator_voice}'."
+    )
+
+    prompt = f"""You are the Lead Screenwriter & Visual Director for the 3D animated series "{ctx.get('title')}".
+Genre: {ctx.get('genre')}
+Global 3D Visual Style: {ctx.get('visual_style')}
+Aspect Ratio: {ctx.get('aspect_ratio', '16:9')}
+{lang_rule}
+
+CHARACTER VAULT & VISUAL ANCHORS:
+{char_desc}
+
+EPISODE PREMISE:
+Title: {title}
+Synopsis: {synopsis}
+
+STORY CONTINUITY (PREVIOUS SCENES):
+{prior_ctx_text}{following_ctx_text}{instruction_text}
+
+TASK:
+Write Scene {target_scene_num} directly continuing the narrative arc and story events from the preceding scenes!
+
+MANDATORY RULES:
+1. SCENE DURATION & DIALOGUE LENGTH:
+   - Target duration: {int(target_dur)} seconds.
+   - The 'dialogue' is the spoken voiceover track. It MUST be substantial and take ~{int(target_dur)} seconds to speak aloud (between 85 and 140 words in {lang.upper()}, approx 5 to 8 full sentences).
+   - If Narrator: Provide rich atmospheric scene-setting, suspense, curiosity, and emotional storytelling.
+   - If Character: Express vibrant personality, emotion, dialogue, teamwork, and reaction to the unfolding events.
+2. SPEAKER & VOICE:
+   - Choose the speaker logically (Narrator or one of the characters from the Character Vault).
+   - Assign their persistent 'voice_id' (Narrator: '{def_narrator_voice}').
+3. 3D VISUAL PROMPT:
+   - Detailed 3D prompt written in English for high-end Pixar/Octane CGI 3D image synthesis.
+   - Include character visual anchors, camera perspective, lighting, rich textures, and dramatic 3D composition.
+4. CAMERA MOTION:
+   - Select the most cinematic camera movement: 'dolly_in', 'dolly_out', 'pan_left', 'pan_right', 'zoom_in', 'zoom_out', or 'orbit'.
+"""
+
+    models = ai.models() or ["gemini-2.5-flash", "gemini-3.5-flash-lite"]
+    for m in models:
+        try:
+            raw = ai.call(m, prompt, SINGLE_SCENE_SCHEMA, timeout=45)
+            res = raw[0] if isinstance(raw, tuple) else raw
+            if isinstance(res, dict) and res.get("dialogue") and res.get("visual_prompt"):
+                res["scene_num"] = target_scene_num
+                res["duration_sec"] = float(res.get("duration_sec") or target_dur)
+                spk = res.get("speaker", "").strip().lower()
+                if not res.get("voice_id"):
+                    if spk in char_map and char_map[spk].get("voice_id"):
+                        res["voice_id"] = char_map[spk]["voice_id"]
+                    else:
+                        res["voice_id"] = def_narrator_voice
+                if not res.get("camera_motion"):
+                    res["camera_motion"] = "dolly_in"
+                if not res.get("setting"):
+                    res["setting"] = f"Scene {target_scene_num} Setting"
+                if not res.get("characters"):
+                    res["characters"] = [c["name"] for c in chars]
+                return res
+        except Exception as e:
+            log.warning("Storyteller single scene generation failed on %s: %s", m, e)
+
+    # Procedural fallback if AI is offline
+    return _build_single_scene_fallback(ctx, title, synopsis, scenes, target_scene_num, target_dur, lang, def_narrator_voice, char_map)
+
+
+def _build_single_scene_fallback(
+    ctx: dict,
+    title: str,
+    synopsis: str,
+    scenes: list[dict],
+    target_scene_num: int,
+    target_dur: float,
+    lang: str,
+    def_narrator_voice: str,
+    char_map: dict
+) -> dict:
+    """Procedural fallback to generate a coherent continuation scene when AI call is offline."""
+    chars = ctx.get("characters", [])
+    vstyle = ctx.get("visual_style") or "high-gloss 3D Pixar toy CGI, octane render, soft volumetric lighting, vibrant primary colors, 8k"
+
+    lead_name = chars[0]["name"] if chars else ("Roo" if lang != "hi" else "वीर")
+    lead_voice = chars[0].get("voice_id", def_narrator_voice) if chars else def_narrator_voice
+    lead_anchor = chars[0].get("visual_anchor", f"cute 3D cartoon {lead_name}") if chars else f"cute 3D cartoon {lead_name}"
+
+    pal_name = chars[1]["name"] if len(chars) > 1 else ("Barnaby" if lang != "hi" else "गोलू")
+    pal_voice = chars[1].get("voice_id", def_narrator_voice) if len(chars) > 1 else lead_voice
+    pal_anchor = chars[1].get("visual_anchor", f"cute 3D cartoon {pal_name}") if len(chars) > 1 else lead_anchor
+
+    prev_scene = scenes[-1] if scenes else None
+    prev_setting = prev_scene.get("setting", "") if prev_scene else ""
+    prev_speaker = prev_scene.get("speaker", "") if prev_scene else ""
+
+    if prev_speaker == lead_name:
+        chosen_speaker = pal_name
+        chosen_voice = pal_voice
+    elif prev_speaker == pal_name:
+        chosen_speaker = "Narrator"
+        chosen_voice = def_narrator_voice
+    else:
+        chosen_speaker = lead_name
+        chosen_voice = lead_voice
+
+    camera_motions = ["dolly_in", "zoom_in", "pan_left", "orbit", "pan_right", "dolly_out"]
+    chosen_cam = camera_motions[(target_scene_num - 1) % len(camera_motions)]
+
+    if lang == "hi":
+        fallback_setting = f"{prev_setting} से आगे का रास्ता" if prev_setting else f"दृश्य {target_scene_num} - रहस्यमयी स्थान"
+        if chosen_speaker == "Narrator":
+            dlg = f"कहानी के इस नए मोड़ पर, वातावरण और भी रोमांचक हो गया। हवा में एक हल्की सी सिहरन थी और चारों तरफ फैली रहस्यमयी रोशनी ने एक नया रास्ता दिखाया। हमारे बहादुर साथी बिना किसी डर के आगे बढ़ रहे थे, क्योंकि वे जानते थे कि हर पहेली का हल हिम्मत और समझदारी में छुपा होता है।"
+        elif chosen_speaker == lead_name:
+            dlg = f"अरे {pal_name}, ज़रा यहाँ देखो! मुझे लगता है कि हम अपनी मंजिल के बहुत करीब पहुँच चुके हैं। सामने जो चमकती हुई संरचना दिखाई दे रही है, वह ज़रूर किसी बड़े रहस्य का दरवाज़ा है। चलो मिलकर इसे ध्यान से देखते हैं और पता लगाते हैं कि आगे क्या छुपा है!"
+        else:
+            dlg = f"{lead_name}, तुम बिल्कुल सही कह रहे हो! यह नज़ारा सचमुच अद्भुत है। हमें बहुत सावधानी से कदम बढ़ाने होंगे ताकि कोई भी ज़रूरी सुराग हमसे छूट न जाए। मुझे पूरा भरोसा है कि हमारी दोस्ती और लगन से हम इस रहस्य को ज़रूर सुलझा लेंगे!"
+        vprompt = f"Cinematic 3D render of {lead_anchor} and {pal_anchor} exploring {fallback_setting}, dynamic volumetric godrays, glowing atmospheric magical sparkles, octane render, {vstyle}"
+    else:
+        fallback_setting = f"Path advancing from {prev_setting}" if prev_setting else f"Scene {target_scene_num} - Enchanted Realm"
+        if chosen_speaker == "Narrator":
+            dlg = f"At this thrilling juncture of their adventure, the atmosphere grew even more enchanting. Soft luminous particles drifted through the air, highlighting a newly uncovered pathway ahead. Our courageous friends pressed forward with unwavering curiosity, determined to uncover every piece of the puzzle."
+        elif chosen_speaker == lead_name:
+            dlg = f"Look closely over there, {pal_name}! I believe we are closer to the heart of the mystery than ever before. That shimmering architecture in the distance must hold the answer we have been searching for. Let us work together and see what secrets it reveals!"
+        else:
+            dlg = f"You are absolutely right, {lead_name}! This is truly an astonishing sight. We must examine the clues carefully so we do not miss anything important. Together, with our teamwork, there is no challenge we cannot overcome!"
+        vprompt = f"Cinematic 3D render of {lead_anchor} and {pal_anchor} exploring {fallback_setting}, dynamic volumetric godrays, glowing atmospheric magical sparkles, octane render, {vstyle}"
+
+    return {
+        "scene_num": target_scene_num,
+        "duration_sec": float(target_dur),
+        "setting": fallback_setting,
+        "characters": [lead_name, pal_name],
+        "speaker": chosen_speaker,
+        "voice_id": chosen_voice,
+        "camera_motion": chosen_cam,
+        "dialogue": dlg,
+        "visual_prompt": vprompt
+    }
 
 
 def build_narrative_walkthrough(series_id: str, script_or_ep: dict, ep_num: int | None = None) -> dict:
@@ -525,6 +775,22 @@ def get_market_trends(country: str = "IN") -> list[dict]:
                 "sample_episodes": ["The Flying Rickshaw Gadget", "The Case of the Missing Mangoes", "The Midnight Rooftop Signal"]
             },
             {
+                "id": "in_aryavarta_detectives",
+                "title": "Aryavarta 3D: Royal Palace Mysteries",
+                "category": "🔥 Realistic Historical Human Drama Trend",
+                "genre": "Cinematic Historical 3D Drama",
+                "target_audience": "Family & Youth (Ages 10+)",
+                "default_language": "hi",
+                "logline": "In an ancient majestic Indian kingdom, wise scholar Acharya Dev and the quick-witted Princess Malini solve deep political riddles, lost relic thefts, and palace conspiracies.",
+                "hook": "Every episode decodes an ancient Sanskrit cipher etched on copper temple plates.",
+                "visual_style": "cinematic 3D live-action aesthetic, photorealistic human characters, natural golden hour lighting, rich ancient silk attire, 8k cinematic",
+                "character_seed": [
+                    {"name": "Acharya Dev", "species": "Human Royal Scholar", "personality": "Wise investigator of ancient secrets", "visual_anchor": "dignified Indian scholar with saffron robes, rudraksha mala, sharp expressive eyes", "voice_id": "hi-IN-MadhurNeural"},
+                    {"name": "Princess Malini", "species": "Human Archer & Strategist", "personality": "Courageous, quick-witted, tactical", "visual_anchor": "brave Indian princess in royal silk armor with golden recurve bow", "voice_id": "hi-IN-SwaraNeural"}
+                ],
+                "sample_episodes": ["The Mystery of the Stolen Scepter", "The Whispering Stone Inscription", "The Siege of the Sun Temple"]
+            },
+            {
                 "id": "in_dadi_bedtime",
                 "title": "Dadi Ma's 3D Bedtime Jadoo",
                 "category": "Cozy Bedtime / Lullaby",
@@ -542,6 +808,22 @@ def get_market_trends(country: str = "IN") -> list[dict]:
             }
         ],
         "US": [
+            {
+                "id": "us_cyber_detectives",
+                "title": "Cyber Detectives: Neo-Metropolis 2099",
+                "category": "🔥 Realistic 3D Human Sci-Fi Trend",
+                "genre": "Cinematic 3D Human Sci-Fi Drama",
+                "target_audience": "Teens & Adults (Ages 13+)",
+                "default_language": "en",
+                "logline": "In a rain-slicked neon metropolis, human Cyber Detective Kabir and neural engineer Dr. Maya solve high-stakes technological mysteries and uncover rogue AI syndicates.",
+                "hook": "Every crime scene contains a glitching memory shard that reveals a piece of the city's hidden conspiracy.",
+                "visual_style": "hyper-realistic 3D Unreal Engine 5 render, cinematic lighting, realistic human skin textures, ray tracing, neon rain reflections, 8k photorealistic",
+                "character_seed": [
+                    {"name": "Inspector Kabir", "species": "Human Cyber Detective", "personality": "Sharp, observant, relentless truth seeker", "visual_anchor": "tall human detective in dark trenchcoat with neon collar glow, detailed realistic facial features", "voice_id": "en-US-ChristopherNeural"},
+                    {"name": "Dr. Maya", "species": "Human Neural Scientist", "personality": "Brilliant, cautious, tech strategist", "visual_anchor": "sharp human female scientist with holographic glasses and lab tech suit", "voice_id": "en-US-JennyNeural"}
+                ],
+                "sample_episodes": ["The Ghost in the Hologram", "The Neon Blackout Mystery", "The Quantum Cipher Heist"]
+            },
             {
                 "id": "us_monster_trucks",
                 "title": "Monster Truck Rescue Squad 3D",
@@ -673,3 +955,21 @@ def get_market_trends(country: str = "IN") -> list[dict]:
     else:
         return trends_map["IN"]
 
+
+
+def _sync_legacy_fields(s: dict) -> None:
+    """The script editor shows `speaker`, `dialogue` and `visual_prompt`; fill them from `lines` / `shots`
+    so both views agree (production.normalize_scene treats an edit of the old fields as the new truth)."""
+    lines = [x for x in (s.get("lines") or []) if (x.get("text") or "").strip()]
+    if lines:
+        s["dialogue"] = "\n".join(f"{x.get('speaker') or 'Narrator'}: {x['text'].strip()}" for x in lines)
+        talkers = [x.get("speaker") for x in lines if (x.get("speaker") or "").lower() != "narrator"]
+        s["speaker"] = talkers[0] if talkers else "Narrator"
+        s["characters"] = sorted(set(s.get("characters") or []) | set(t for t in talkers if t))
+    shots = [x for x in (s.get("shots") or []) if (x.get("visual_prompt") or "").strip()]
+    if shots:
+        if not (s.get("visual_prompt") or "").strip():
+            s["visual_prompt"] = shots[0]["visual_prompt"]
+        elif shots[0]["visual_prompt"].strip() != s["visual_prompt"].strip():
+            shots.insert(0, {"visual_prompt": s["visual_prompt"], "camera_motion": s.get("camera_motion", "")})
+        s["shots"] = shots
