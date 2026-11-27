@@ -2240,6 +2240,17 @@ textarea.cpg-in{height:auto;padding:8px 12px;resize:vertical}.cpg-in:focus{borde
 .tp9-cam.styled::before{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:var(--cb,none);z-index:1;pointer-events:none}
 /* the cam's picture fills its box a hair past the edge, so no gap shows between it and a rounded edge or border */
 .tp9-cam.real video,.tp9-cam.real img{inset:-2%;width:104%;height:104%}
+/* PeakCut Searchable Dropdown */
+.ser-search-pick .pick-menu{min-width:270px;max-width:320px;max-height:300px;padding:8px;background:#23150D;border:1px solid rgba(255,255,255,.09);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden}
+.ser-search-pick .ser-pick-items{flex:1;overflow-y:auto;max-height:230px;padding-right:2px}
+.ser-search-pick .pick-opt{padding:7px 8px;border-radius:7px;margin-bottom:2px}
+.ser-search-pick .pick-opt:hover,.ser-search-pick .pick-opt:focus-visible{background:rgba(255,255,255,.09);color:#fff}
+.ser-search-pick .pick-opt[aria-selected="true"]{background:rgba(255,139,51,.15);color:#FFC79D}
+.ser-search-pick .pick-opt[aria-selected="true"] .pl{color:#FFC79D}
+.ser-search-pick .pick-opt[aria-selected="true"] .tick{visibility:visible;color:var(--brand)}
+.ser-search-pick .ser-pick-search:focus{border-color:var(--brand);background:rgba(255,255,255,.12)}
+.card:has(.pick.open){position:relative;z-index:25}
+.pick.open{position:relative;z-index:35}
 </style>
 </head>
 <body>
@@ -2273,6 +2284,7 @@ textarea.cpg-in{height:auto;padding:8px 12px;resize:vertical}.cpg-in:focus{borde
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const slugify = s => String(s ?? "").toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/[-\s]+/g, "-") || "character";
 const I = {
  "github": "<path fill-rule=\"evenodd\" transform=\"scale(16)\" d=\"M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z\"/>",
  "instagram": "<rect x=\"32\" y=\"32\" width=\"192\" height=\"192\" rx=\"56\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"18\"/><circle cx=\"128\" cy=\"128\" r=\"42\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"18\"/><circle cx=\"184\" cy=\"72\" r=\"13\"/>",
@@ -2282,6 +2294,7 @@ const I = {
  "bulb": "<path d=\"M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Z\"/>",
  "caret": "<path d=\"M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z\"/>",
  "minus": "<path d=\"M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z\"/>",
+ "sparkle": "<path d=\"M128,16a8,8,0,0,1,8,8v24a8,8,0,0,1-16,0V24A8,8,0,0,1,128,16ZM56,128a8,8,0,0,1-8-8H24a8,8,0,0,1,0-16H48A8,8,0,0,1,56,128Zm176-8a8,8,0,0,1-8,8H200a8,8,0,0,1,0-16h16A8,8,0,0,1,232,120Zm-104,80a8,8,0,0,1-8,8V232a8,8,0,0,1,16,0V208A8,8,0,0,1,128,192ZM77.25,156.75a8,8,0,0,1,0,11.31L60.2,185.11a8,8,0,0,1-11.31-11.31l17.05-17.05A8,8,0,0,1,77.25,156.75Zm118.55-106.55a8,8,0,0,1,0,11.31L178.75,78.56a8,8,0,0,1-11.31-11.31L184.49,50.2A8,8,0,0,1,195.8,50.2ZM60.2,78.56a8,8,0,0,1,11.31-11.31L88.56,50.2A8,8,0,0,1,100,61.51L82.83,78.56A8,8,0,0,1,60.2,78.56Zm118.55,106.55a8,8,0,0,1,0-11.31l17.05-17.05a8,8,0,0,1,11.31,11.31l-17.05,17.05A8,8,0,0,1,178.75,185.11Z\"/>",
  "chart": "<path d=\"M224,200h-8V40a8,8,0,0,0-8-8H152a8,8,0,0,0-8,8V80H96a8,8,0,0,0-8,8v40H48a8,8,0,0,0-8,8v64H32a8,8,0,0,0,0,16H224a8,8,0,0,0,0-16ZM160,48h40V200H160ZM104,96h40V200H104ZM56,144H88v56H56Z\"/>",
  "film": "<path d=\"M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,88h80v80H40Zm96-16V56h32V72Zm-16,0H88V56h32Zm0,112v16H88V184Zm16,0h32v16H136Zm0-16V88h80v80Zm80-96H184V56h32ZM72,56V72H40V56ZM40,184H72v16H40Zm176,16H184V184h32v16Z\"/>",
  "cog": "<path d=\"M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm109.94-52.79a8,8,0,0,0-3.89-5.4l-29.83-17-.12-33.62a8,8,0,0,0-2.83-6.08,111.91,111.91,0,0,0-36.72-20.67,8,8,0,0,0-6.46.59L128,41.85,97.88,25a8,8,0,0,0-6.47-.6A112.1,112.1,0,0,0,54.73,45.15a8,8,0,0,0-2.83,6.07l-.15,33.65-29.83,17a8,8,0,0,0-3.89,5.4,106.47,106.47,0,0,0,0,41.56,8,8,0,0,0,3.89,5.4l29.83,17,.12,33.62a8,8,0,0,0,2.83,6.08,111.91,111.91,0,0,0,36.72,20.67,8,8,0,0,0,6.46-.59L128,214.15,158.12,231a7.91,7.91,0,0,0,3.9,1,8.09,8.09,0,0,0,2.57-.42,112.1,112.1,0,0,0,36.68-20.73,8,8,0,0,0,2.83-6.07l.15-33.65,29.83-17a8,8,0,0,0,3.89-5.4A106.47,106.47,0,0,0,237.94,107.21Zm-15,34.91-28.57,16.25a8,8,0,0,0-3,3c-.58,1-1.19,2.06-1.81,3.06a7.94,7.94,0,0,0-1.22,4.21l-.15,32.25a95.89,95.89,0,0,1-25.37,14.3L134,199.13a8,8,0,0,0-3.91-1h-.19c-1.21,0-2.43,0-3.64,0a8.08,8.08,0,0,0-4.1,1l-28.84,16.1A96,96,0,0,1,67.88,201l-.11-32.2a8,8,0,0,0-1.22-4.22c-.62-1-1.23-2-1.8-3.06a8.09,8.09,0,0,0-3-3.06l-28.6-16.29a90.49,90.49,0,0,1,0-28.26L61.67,97.63a8,8,0,0,0,3-3c.58-1,1.19-2.06,1.81-3.06a7.94,7.94,0,0,0,1.22-4.21l.15-32.25a95.89,95.89,0,0,1,25.37-14.3L122,56.87a8,8,0,0,0,4.1,1c1.21,0,2.43,0,3.64,0a8.08,8.08,0,0,0,4.1-1l28.84-16.1A96,96,0,0,1,188.12,55l.11,32.2a8,8,0,0,0,1.22,4.22c.62,1,1.23,2,1.8,3.06a8.09,8.09,0,0,0,3,3.06l28.6,16.29A90.49,90.49,0,0,1,222.9,142.12Z\"/>",
@@ -2804,6 +2817,7 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
       const tip = [making && `${making} video${making > 1 ? "s" : ""} being made`, rec && `${rec} stream${rec > 1 ? "s" : ""} recording`,
                    redo && `clips being made again in ${redo} video${redo > 1 ? "s" : ""}`].filter(Boolean).join(", ");
       return w ? `<span class="working" title="${tip}"><i></i>${w} working</span>` : S.jobs.length ? `<span class="count">${S.jobs.length}</span>` : ""; })()) +
+    nav("series", navIc("sparkle", "series"), "AI Series Studio") +
     nav("discover", navIc("radio", "discover"), "Streamers", S.creators.length ? `<span class="count" title="Your streamers">${S.creators.length}</span>` : "") +
     nav("campaigns", navIc("money", "campaigns"), "Campaigns", S.mc.list.length ? `<span class="count" title="Your campaigns">${S.mc.list.length}</span>` : "") +
     (postSoon() ? "" : nav("schedule", navIc("cal", "schedule"), "Schedule", schDot())) +
@@ -2823,7 +2837,8 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
       <button class="icon-btn bell" data-act="bell" title="Notifications" aria-label="Notifications${S.status.unread ? `, ${S.status.unread} new` : ""}" aria-haspopup="dialog">${ic("bell")}${S.status.unread ? `<span class="dotn">${S.status.unread > 9 ? "9+" : S.status.unread}</span>` : ""}</button></div>` : ""));
   const c = creator();
   const recording = S.creators.filter(x => x.live_job).length;
-  let title = {overview:"Home", library:"All videos", settings:"Settings", styles:"Styles", usage:"AI", discover:"Streamers", campaigns:"Campaigns", schedule:"Schedule", updates:"What's new"}[S.view] || "", sub = "", act = "";
+  let title = {overview:"Home", library:"All videos", series:"AI Series Studio", settings:"Settings", styles:"Styles", usage:"AI", discover:"Streamers", campaigns:"Campaigns", schedule:"Schedule", updates:"What's new"}[S.view] || "", sub = "", act = "";
+  if (S.view === "series") sub = "Autonomous 3D episodic animation, character continuity and storytelling.";
   if (S.view === "usage") sub = "Your AI service and key, and what the AI has been used for.";
   if (S.view === "campaigns") sub = "Brands pay you per view.";
   if (S.view === "discover") sub = "Clipped live, 24/7.";
@@ -3540,7 +3555,7 @@ function go(v, tab, fromHistory) {
   $("#heroSlot").innerHTML = v === "overview" ? `<section class="hero"><div class="ga-bg" id="appAscii" aria-hidden="true"></div>${updCard()}<h2>What do you want to clip today?</h2>
       <p>Paste a link or drop in videos. You get captioned shorts back.</p><div id="add"></div></section>` : "";
   if (v === "overview") { view.innerHTML = `<div id="homeLive"></div><div id="homeCamps"></div><div id="ov"></div>`; drawHomeLive(); loadHomeLive(); drawHomeCamps(); if (!S.cp.rows || Date.now() - (S.cp.at || 0) > 600000) loadCampaigns(); }
-  else if (v === "library") view.innerHTML = `<div id="add"></div><div id="jobs"></div>`;
+  else if (v === "library") { view.innerHTML = `<div id="libOrganizer"></div><div id="add"></div><div id="jobs"></div>`; drawLibraryOrganizer(); }
   else if (v === "settings") view.innerHTML = `<div id="sform"></div>`;
   else if (v === "usage") { view.innerHTML = `<div id="aikey"></div><div id="usage"></div>`; drawAiKey(); loadUsage(); }
   else if (v === "styles") view.innerHTML = `<div class="sty-page" id="setbody"><div class="set-load">Loading…</div></div>`;
@@ -3549,6 +3564,7 @@ function go(v, tab, fromHistory) {
   else if (v === "campaigns") { view.innerHTML = campaignsPage(); campaignsWire(); loadCampaigns(); loadMyCamps().then(drawCampView); }
   else if (v === "updates") view.innerHTML = updatesPage();
   else if (v === "schedule") { view.innerHTML = `<div id="sched"></div>`; schMarkSeen(); loadSchedule(); }
+  else if (v === "series") { view.innerHTML = `<div id="seriesStudio"></div>`; drawSeriesStudio(); }
   else view.innerHTML = `<div id="stream"></div><div id="cbody"></div>`;   // the live player stays put across tabs: no restart, no rebuffer
   if ($("#add")) drawAdd(v === "overview" ? "hero" : "compact");
   if (v === "overview" && window.GradientASCII) { try { window._gaStop = GradientASCII($("#appAscii"), {colors: ["#ffb27a", "#ffffff", "#ffd2ae", "#ffe0c2", "#fff1e6"], shape: "horizon", lightMode: true, cellSize: 16, density: 0.8, glyphOpacity: 0.26, gradientOpacity: 0.32, glow: 0.06, grain: 0.06, mouseInteraction: false, clickEffect: "none"}); } catch {} }
@@ -3620,7 +3636,66 @@ function setLang(v) {   // when the creator is changed in the add bar, their lan
   const i = $("#o_lang"); if (!i || !speechLangs()[v]) return;
   i.value = v; i.parentElement.querySelectorAll("[data-seg]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
 }
-document.addEventListener("change", e => { if (e.target.id === "o_creator") setLang(S.creators.find(x => x.id === e.target.value)?.lang || "en"); });
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t && t.dataset && t.dataset.serSceneField !== undefined) {
+    const idx = +t.dataset.idx;
+    const fld = t.dataset.serSceneField;
+    if (S.draftScript && S.draftScript.scenes && S.draftScript.scenes[idx]) {
+      S.draftScript.scenes[idx][fld] = fld === "duration_sec" ? (Number(t.value) || 55) : t.value;
+      if (fld === "duration_sec") {
+        const totalDur = S.draftScript.scenes.reduce((acc, x) => acc + (x.duration_sec || 55), 0);
+        const hdr = $("#ser_est_dur_hdr");
+        if (hdr) hdr.textContent = `Estimated Duration: ~${Math.round(totalDur)}s (~${(totalDur / 60).toFixed(1)} mins) · 📺 16:9 Long Video + 📱 9:16 Short`;
+      }
+    }
+  }
+  if (t && t.id === "ser_custom_dur_min") {
+    const min = Math.max(1, Math.min(60, Number(t.value) || 12));
+    const pace = S.serSceneDur || 60;
+    S.serTargetDurMin = min;
+    S.serTargetScenes = Math.max(3, Math.min(25, Math.round((min * 60) / pace)));
+  }
+  if (t && t.id === "ser_custom_scenes_cnt") {
+    const cnt = Math.max(3, Math.min(30, Number(t.value) || 12));
+    S.serTargetScenes = cnt;
+    const pace = S.serSceneDur || 60;
+    S.serTargetDurMin = Math.round((cnt * pace) / 60);
+  }
+});
+document.addEventListener("change", e => {
+  if (e.target && (e.target.id === "ser_custom_dur_min" || e.target.id === "ser_custom_scenes_cnt")) {
+    return drawSeriesStudio();
+  }
+  if (e.target.dataset && e.target.dataset.serSceneField !== undefined) {
+    const idx = +e.target.dataset.idx;
+    const fld = e.target.dataset.serSceneField;
+    if (S.draftScript && S.draftScript.scenes && S.draftScript.scenes[idx]) {
+      S.draftScript.scenes[idx][fld] = fld === "duration_sec" ? (Number(e.target.value) || 55) : e.target.value;
+      if (fld === "speaker") {
+        const spk = e.target.value;
+        const chars = (S.activeSeries?.characters || []);
+        const c = chars.find(x => x.name.toLowerCase() === spk.toLowerCase());
+        if (c && c.voice_id) {
+          S.draftScript.scenes[idx].voice_id = c.voice_id;
+        }
+        const card = e.target.closest(".card");
+        const dlgLabel = card?.querySelector(".ser-scene-dlg-label");
+        if (dlgLabel) dlgLabel.textContent = `💬 Spoken Dialogue (${spk}):`;
+      }
+    }
+  }
+  if (e.target.id === "ser_lang_select") {
+    const lang = e.target.value;
+    send("/api/series/" + encodeURIComponent(S.activeSeriesId), {default_language: lang}, "PUT").then(() => {
+      toast("Default language set to " + lang.toUpperCase(), "ok");
+      S.serPitches = null; S.draftScript = null;
+      loadSeriesData(true).then(drawSeriesStudio);
+    });
+  }
+  if (e.target.id === "ser_switcher") { S.activeSeriesId = e.target.value; S.activeSeries = null; S.draftScript = null; S.serPitches = null; S.serProdStatus = null; loadSeriesData(true).then(drawSeriesStudio); }
+  if (e.target.id === "o_creator") setLang(S.creators.find(x => x.id === e.target.value)?.lang || "en");
+});
 const CAP_LOOK = {bounce:{font:"'Archivo Black'", hl:"#FFFF00", up:true}, hype:{font:"Anton", hl:"#FF3C3C", up:true}, clean:{font:"Poppins", hl:"#6BD7FF", up:false, w:800}};
 function capPrev(k) {
   const s = CAP_LOOK[k] || {font:"inherit", hl:"#FF8B33", up:true};
@@ -3646,18 +3721,119 @@ function choice(id, items, val, disabled = false) {
   return `<input type="hidden" id="${id}" value="${esc(val)}"><div class="tiles3" role="group"${captions ? ' aria-labelledby="o_style_label"' : ""}>${items.map(x =>
     `<button type="button" class="tile-o" data-seg="${id}" data-v="${esc(x.v)}" aria-pressed="${String(x.v) === String(val)}"${captions ? " data-caption-style" : ""}${disabled ? " disabled" : ""}${x.title ? ` title="${esc(x.title)}"` : ""}>${x.prev}${esc(x.label)}</button>`).join("")}</div>`;
 }
-const closePicks = except => $$(".pick.open").forEach(p => { if (p !== except) { p.classList.remove("open"); p.querySelector(".pick-btn").setAttribute("aria-expanded", "false"); } });
+const SER_LANGUAGES = [
+  { v: "hi", label: "Hindi", sub: "हिन्दी", badge: "🇮🇳" },
+  { v: "en", label: "English", sub: "English (US/UK)", badge: "🇺🇸" },
+  { v: "es", label: "Spanish", sub: "Español", badge: "🇪🇸" },
+  { v: "ja", label: "Japanese", sub: "日本語", badge: "🇯🇵" },
+  { v: "fr", label: "French", sub: "Français", badge: "🇫🇷" },
+  { v: "de", label: "German", sub: "Deutsch", badge: "🇩🇪" },
+  { v: "pt", label: "Portuguese", sub: "Português", badge: "🇧🇷" },
+  { v: "it", label: "Italian", sub: "Italiano", badge: "🇮🇹" },
+  { v: "ar", label: "Arabic", sub: "العربية", badge: "🇸🇦" },
+  { v: "ru", label: "Russian", sub: "Русский", badge: "🇷🇺" },
+  { v: "ko", label: "Korean", sub: "한국어", badge: "🇰🇷" },
+  { v: "zh", label: "Chinese", sub: "中文 (Mandarin)", badge: "🇨🇳" },
+  { v: "bn", label: "Bengali", sub: "বাংলা", badge: "🇮🇳" },
+  { v: "ta", label: "Tamil", sub: "தமிழ்", badge: "🇮🇳" },
+  { v: "te", label: "Telugu", sub: "తెలుగు", badge: "🇮🇳" },
+  { v: "mr", label: "Marathi", sub: "मराठी", badge: "🇮🇳" },
+  { v: "gu", label: "Gujarati", sub: "ગુજરાતી", badge: "🇮🇳" },
+  { v: "ur", label: "Urdu", sub: "اردو", badge: "🇵🇰" },
+  { v: "tr", label: "Turkish", sub: "Türkçe", badge: "🇹🇷" },
+  { v: "id", label: "Indonesian", sub: "Bahasa Indonesia", badge: "🇮🇩" }
+];
+function searchPicker(id, icon, aria, items, val, placeholder, opt = {}) {
+  if (!items || !items.length) return "";
+  const norm = s => String(s || "").toLowerCase().replace(/[\s_-]+/g, "");
+  const cur = items.find(x => norm(x.v) === norm(val) || norm(x.label) === norm(val)) || items[0];
+  const curBadge = cur.badge ? `<span class="p-badge" style="font-size:14px;line-height:1;display:inline-flex;align-items:center">${cur.badge}</span>` : `<span class="p-badge" style="display:inline-flex;align-items:center">${cur.icon ? ic(cur.icon) : icon}</span>`;
+  const btnStyle = opt.btnStyle || "height:36px;padding:0 12px;font-size:13px;border-radius:9px";
+  const maxW = opt.width || "180px";
+  const attrs = opt.attrs || "";
+  const alignStyle = opt.align === "right" ? "left:auto;right:0;" : "";
+  const minW = opt.menuMinW ? `min-width:${opt.menuMinW};` : "";
+  const maxWStyle = opt.menuMaxW ? `max-width:${opt.menuMaxW};` : "";
+  const menuStyle = (alignStyle || minW || maxWStyle) ? `style="${alignStyle}${minW}${maxWStyle}"` : "";
+  return `<div class="pick ser-search-pick">
+    <input type="hidden" id="${id}" value="${esc(cur.v)}" ${attrs}>
+    <button type="button" class="chip pick-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="${esc(aria)}" style="${btnStyle};background:#fff;border:1px solid var(--line-2);font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px">
+      ${curBadge}
+      <span class="pv" style="max-width:${maxW};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(cur.label)}</span>
+      ${ic("caret").replace("<svg", '<svg class="car" style="margin-left:4px"')}
+    </button>
+    <div class="pick-menu" role="listbox" ${menuStyle}>
+      <div style="padding:0 2px 8px 2px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:6px">
+        <div style="position:relative;display:flex;align-items:center">
+          <input type="text" class="ser-pick-search" placeholder="${esc(placeholder || 'Search...')}" style="width:100%;height:32px;padding:0 8px 0 28px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:#fff;font-size:12px;outline:none;box-sizing:border-box" autocomplete="off" spellcheck="false">
+          <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:#9C8A7E;pointer-events:none">🔍</span>
+        </div>
+      </div>
+      <div class="ser-pick-items">
+        ${items.map(x => `
+          <button type="button" class="pick-opt" role="option" data-v="${esc(x.v)}" data-search="${esc((x.label + ' ' + (x.sub || '') + ' ' + x.v).toLowerCase())}" aria-selected="${norm(x.v) === norm(cur.v)}">
+            <span class="av" style="font-size:14px;background:rgba(255,255,255,0.08);border-radius:6px;width:26px;height:26px;display:grid;place-items:center">${x.badge || (x.icon ? ic(x.icon) : icon)}</span>
+            <div style="display:flex;flex-direction:column;min-width:0;flex:1;text-align:left">
+              <span class="pl" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.label)}</span>
+              ${x.sub ? `<span style="font-size:11px;color:#A89487;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.sub)}</span>` : ''}
+            </div>
+            ${ic("check").replace("<svg", '<svg class="tick"')}
+          </button>
+        `).join("")}
+        <p class="ser-pick-none" style="display:none;padding:12px 8px;font-size:12px;color:#9C8A7E;text-align:center">No matches found</p>
+      </div>
+    </div>
+  </div>`;
+}
+const closePicks = except => $$(".pick.open").forEach(p => {
+  if (p !== except) {
+    p.classList.remove("open");
+    p.querySelector(".pick-btn")?.setAttribute("aria-expanded", "false");
+    const sinp = p.querySelector(".ser-pick-search");
+    if (sinp) {
+      sinp.value = "";
+      p.querySelectorAll(".pick-opt").forEach(o => o.style.display = "flex");
+      const none = p.querySelector(".ser-pick-none");
+      if (none) none.style.display = "none";
+    }
+  }
+});
 document.addEventListener("click", e => {
   const pb = e.target.closest(".pick-btn");
-  if (pb) { const p = pb.parentElement, open = !p.classList.contains("open"); closePicks(p);
-    p.classList.toggle("open", open); pb.setAttribute("aria-expanded", String(open));
-    if (open) (p.querySelector('.pick-opt[aria-selected="true"]') || p.querySelector(".pick-opt")).focus(); return; }
+  if (pb) {
+    const p = pb.parentElement, open = !p.classList.contains("open");
+    closePicks(p);
+    p.classList.toggle("open", open);
+    pb.setAttribute("aria-expanded", String(open));
+    if (open) {
+      const sinp = p.querySelector(".ser-pick-search");
+      if (sinp) {
+        sinp.value = "";
+        p.querySelectorAll(".pick-opt").forEach(o => o.style.display = "flex");
+        const none = p.querySelector(".ser-pick-none");
+        if (none) none.style.display = "none";
+        setTimeout(() => sinp.focus(), 30);
+      } else {
+        (p.querySelector('.pick-opt[aria-selected="true"]') || p.querySelector(".pick-opt"))?.focus();
+      }
+    }
+    return;
+  }
   const po = e.target.closest(".pick-opt");
-  if (po) { const p = po.closest(".pick"); p.querySelector("input[type=hidden]").value = po.dataset.v;
+  if (po) {
+    const p = po.closest(".pick");
+    p.querySelector("input[type=hidden]").value = po.dataset.v;
     p.querySelectorAll(".pick-opt").forEach(o => o.setAttribute("aria-selected", String(o === po)));
-    p.querySelector(".pv").textContent = po.querySelector(".pl").textContent; closePicks(); p.querySelector(".pick-btn").focus();
-    const tm = p.querySelector(".pick-btn .tpm"); if (tm && po.querySelector(".tpm")) tm.innerHTML = po.querySelector(".tpm").innerHTML;
-    p.querySelector("input[type=hidden]").dispatchEvent(new Event("change", {bubbles: true})); return; }
+    p.querySelector(".pv").textContent = po.querySelector(".pl").textContent;
+    const bd = p.querySelector(".p-badge"), oav = po.querySelector(".av");
+    if (bd && oav) bd.innerHTML = oav.innerHTML;
+    closePicks();
+    p.querySelector(".pick-btn").focus();
+    const tm = p.querySelector(".pick-btn .tpm");
+    if (tm && po.querySelector(".tpm")) tm.innerHTML = po.querySelector(".tpm").innerHTML;
+    p.querySelector("input[type=hidden]").dispatchEvent(new Event("change", {bubbles: true}));
+    return;
+  }
   if (!e.target.closest(".pick") || e.target.closest(".pick-new")) closePicks();
   const sg = e.target.closest("[data-seg]");
   if (sg && !sg.disabled) { $("#" + sg.dataset.seg).value = sg.dataset.v;
@@ -3666,13 +3842,42 @@ document.addEventListener("click", e => {
   if (st) { const i = $("#" + st.dataset.step), s = Number(i.step) || 1, d = Number(st.dataset.d);
     const v = Math.min(Number(i.max), Math.max(Number(i.min), (Number(i.value) || 0) + d * s)); i.value = v; }
 });
+document.addEventListener("input", e => {
+  if (e.target.classList.contains("ser-pick-search")) {
+    const q = e.target.value.trim().toLowerCase();
+    const menu = e.target.closest(".pick-menu");
+    if (!menu) return;
+    const opts = menu.querySelectorAll(".pick-opt");
+    let visible = 0;
+    opts.forEach(opt => {
+      const txt = (opt.dataset.search || opt.textContent).toLowerCase();
+      const match = !q || txt.includes(q);
+      opt.style.display = match ? "flex" : "none";
+      if (match) visible++;
+    });
+    const none = menu.querySelector(".ser-pick-none");
+    if (none) none.style.display = visible === 0 ? "block" : "none";
+  }
+});
 document.addEventListener("keydown", e => {
   const p = e.target.closest?.(".pick"); if (!p) return;
   if (e.key === "Escape" && p.classList.contains("open")) { closePicks(); p.querySelector(".pick-btn").focus(); e.preventDefault(); return; }
+  if (e.target.classList.contains("ser-pick-search")) {
+    if (e.key === "ArrowDown") {
+      const firstOpt = p.querySelector('.pick-opt:not([style*="display: none"])');
+      if (firstOpt) { firstOpt.focus(); e.preventDefault(); }
+    } else if (e.key === "Enter") {
+      const firstOpt = p.querySelector('.pick-opt:not([style*="display: none"])');
+      if (firstOpt) { firstOpt.click(); e.preventDefault(); }
+    }
+    return;
+  }
   if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
   e.preventDefault();
   if (!p.classList.contains("open")) { p.querySelector(".pick-btn").click(); return; }
-  const os = [...p.querySelectorAll(".pick-opt")], i = os.indexOf(document.activeElement);
+  const os = [...p.querySelectorAll('.pick-opt:not([style*="display: none"])')];
+  if (!os.length) return;
+  const i = os.indexOf(document.activeElement);
   os[(i + (e.key === "ArrowDown" ? 1 : -1) + os.length) % os.length].focus();
 });
 const targetCreator = () => creatorId() || $("#o_creator")?.value || "";
@@ -4245,18 +4450,53 @@ function drawJobs() {
     list = list.filter(j => j.status !== "live"); }
   if (!list.length) {
     root.querySelectorAll("section").forEach(e => e.remove());
+    $("#jobs-page-bar")?.remove();
     if (!$(".empty", root)) root.innerHTML = `<div class="empty"><img src="/brand/favicon.svg" alt=""><b>${cid ? "No clips for this streamer yet" : "No videos yet"}</b>${cid ? "Start recording their stream, or paste a link to one of their videos above." : "Paste a link above and the studio will find the best moments and turn them into clips."}</div>`;
     return;
   }
   $(".empty", root)?.remove();
-  const ids = new Set(list.map(j => j.id));
-  $$("section[data-job]", root).forEach(el => { if (!ids.has(el.dataset.job)) el.remove(); });
-  list.forEach((j, i) => {
+
+  // Pagination for Individual Clips (6 items per page)
+  const perPage = 6;
+  const totalJobsPages = Math.max(1, Math.ceil(list.length / perPage));
+  if (!S.jobsPage || S.jobsPage < 1) S.jobsPage = 1;
+  if (S.jobsPage > totalJobsPages) S.jobsPage = totalJobsPages;
+  const curPage = S.jobsPage;
+  const pagedList = list.slice((curPage - 1) * perPage, curPage * perPage);
+
+  const pagedIds = new Set(pagedList.map(j => j.id));
+  $$("section[data-job]", root).forEach(el => { if (!pagedIds.has(el.dataset.job)) el.remove(); });
+  pagedList.forEach((j, i) => {
     let el = $(`section[data-job="${j.id}"]`, root);
     if (!el) { el = document.createElement("section"); el.className = "job"; el.dataset.job = j.id; }
     if (root.children[i] !== el) root.insertBefore(el, root.children[i] || null);
     putJob(el, j);
   });
+
+  // Render bottom pagination bar
+  let pageBar = $("#jobs-page-bar");
+  if (list.length > perPage || totalJobsPages > 1) {
+    if (!pageBar) {
+      pageBar = document.createElement("div");
+      pageBar.id = "jobs-page-bar";
+      root.appendChild(pageBar);
+    } else {
+      root.appendChild(pageBar);
+    }
+    const startIdx = (curPage - 1) * perPage + 1;
+    const endIdx = Math.min(list.length, curPage * perPage);
+    pageBar.style = "margin:24px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 18px;background:var(--muted);border-radius:12px;border:1px solid var(--line)";
+    pageBar.innerHTML = `
+      <span class="sub" style="font-size:13px;font-weight:500">Showing <b>${startIdx}-${endIdx}</b> of <b>${list.length}</b> clips</span>
+      <div class="row" style="align-items:center;gap:6px">
+        <button type="button" class="btn sm" data-act="job-page" data-p="${curPage - 1}" ${curPage <= 1 ? 'disabled style="opacity:0.5"' : ''}>‹ Previous</button>
+        <span style="font-size:12px;font-weight:600;padding:4px 10px;background:rgba(255,255,255,0.8);border-radius:6px;border:1px solid var(--line)">Page ${curPage} of ${totalJobsPages}</span>
+        <button type="button" class="btn sm" data-act="job-page" data-p="${curPage + 1}" ${curPage >= totalJobsPages ? 'disabled style="opacity:0.5"' : ''}>Next ›</button>
+      </div>
+    `;
+  } else if (pageBar) {
+    pageBar.remove();
+  }
 }
 
 /* ============================================================ creator pages */
@@ -5414,7 +5654,7 @@ function tplHover(btn) {
 function tplUnhover() { const pop = $("#tpcpop"); if (pop) { pop.hidden = true; pop.innerHTML = ""; } }
 document.addEventListener("pointerover", e => { const b = e.target.closest?.(".tpc-btn"); if (b && e.pointerType !== "touch") tplHover(b); });
 document.addEventListener("pointerout", e => { const b = e.target.closest?.(".tpc-btn"); if (b && !b.contains(e.relatedTarget)) tplUnhover(); });
-document.addEventListener("click", e => { if (e.target.closest?.(".tpc-btn")) tplUnhover(); }, true);
+document.addEventListener("click", e => { if (e.target.closest && e.target.closest(".tpc-btn")) tplUnhover(); }, true);
 function tplPickDlg(id, made) {
   let d = $("#tpldlg");
   if (!d) { d = document.createElement("dialog"); d.id = "tpldlg"; d.className = "tpd"; document.body.append(d); }
@@ -5563,12 +5803,29 @@ function tplRoute() {
 }
 function drawTplEditor(body) {
   const E = S.tplEdit;
-  body.innerHTML = `<div class="tpe"><div class="tpe-top"><button class="btn sm ghost" data-act="tplback">${ic("caret").replace("<svg", '<svg class="back"')}Styles</button>
-      <input class="tpe-name" id="tpe_name" maxlength="40" value="${esc(E.name)}" aria-label="Style name" placeholder="Style name">
-      <span class="grow"></span><button class="btn ghost" data-act="tplvideo">${ic("film")}Preview video</button><button class="btn primary" data-act="tplsave">${ic("check")}Save changes</button></div>
-    <div class="tpe-body"><div class="tpe-l"><div class="tpe-stage" id="tpestage"></div><p class="tpe-hint">Drag the captions or the heading to move them.</p></div>
-      <div class="tpe-r"><div class="seg tpe-tabs" role="tablist">${[["captions", "Captions"], ["heading", "Heading"], ["layout", "Layout"]].map(([k, l]) =>
-        `<button type="button" role="tab" data-act="tpltab" data-k="${k}" aria-pressed="${E.tab === k}">${l}</button>`).join("")}</div><div id="tpectl"></div></div></div></div>`;
+  const backBtn = ic("caret").replace("<svg", '<svg class="back"');
+  const tabsHtml = [["captions", "Captions"], ["heading", "Heading"], ["layout", "Layout"]]
+    .map(([k, l]) => `<button type="button" role="tab" data-act="tpltab" data-k="${k}" aria-pressed="${E.tab === k}">${l}</button>`)
+    .join("");
+  body.innerHTML = `<div class="tpe">
+    <div class="tpe-top">
+      <button class="btn sm ghost" data-act="tplback">${backBtn}Styles</button>
+      <input class="tpe-name" id="tpe_name" maxlength="40" value="${esc(E.name)}" aria-label="Style name" placeholder="Style name" />
+      <span class="grow"></span>
+      <button class="btn ghost" data-act="tplvideo">${ic("film")}Preview video</button>
+      <button class="btn primary" data-act="tplsave">${ic("check")}Save changes</button>
+    </div>
+    <div class="tpe-body">
+      <div class="tpe-l">
+        <div class="tpe-stage" id="tpestage"></div>
+        <p class="tpe-hint">Drag the captions or the heading to move them.</p>
+      </div>
+      <div class="tpe-r">
+        <div class="seg tpe-tabs" role="tablist">${tabsHtml}</div>
+        <div id="tpectl"></div>
+      </div>
+    </div>
+  </div>`;
   tplPaint(); tplCtl();
 }
 function tplPaint() {
@@ -5616,30 +5873,39 @@ function tplCtl() {
     const pre = presets(CAP_PRESETS, c, v => ({...E.look, cap: {...c, ...v}, hook: {...E.look.hook, show: false}, layout: "crop", cam: null}));
     const anim = Object.entries(S.tpl.anims || {}).map(([k, l]) => tile("cap.anim", k, `${tplPrev({...E.look, cap: {...c, anim: k, per: 2, y: 50, size: Math.max(c.size, 150)}, hook: {show: false}, layout: "crop"}, {mini: true, play: "anim-" + k})}<em>${esc(l)}</em>`, c.anim === k)).join("");
     if (c.show === false) { box.innerHTML = `<div class="tpe-sec">${toggle("cap.show", "Show the captions", false)}</div>`; return; }
-    box.innerHTML = `<div class="tpe-sec">${toggle("cap.show", "Show the captions", true)}</div>${pre}<div class="tpe-sec"><h4>Animation</h4><div class="tpe-anims">${anim}</div></div>
+    const perButtons = [1, 2, 3, 4, 5].map(v => `<button type="button" data-tf="cap.per" data-v="${v}" aria-pressed="${c.per === v}">${v}</button>`).join("");
+    box.innerHTML = `<div class="tpe-panel">
+      <div class="tpe-sec">${toggle("cap.show", "Show the captions", true)}</div>
+      ${pre}
+      <div class="tpe-sec"><h4>Animation</h4><div class="tpe-anims">${anim}</div></div>
       <div class="tpe-sec"><h4>Font</h4>${fonts("cap.font")}</div>
       <div class="tpe-sec"><h4>Colours</h4>${colors("cap.color", "Text")}${c.anim !== "none" ? colors("cap.hi", c.anim === "box" ? "Box" : "Word being said") : ""}${colors("cap.key", "Key words")}
         ${toggle("cap.bg", "Background behind the words", c.bg)}${c.bg ? colors("cap.bgc", "Background colour") : ""}</div>
       <div class="tpe-sec"><h4>Size and shape</h4>${range("cap.size", "Size", 60, 200, c.size, v => v < 95 ? "Small" : v < 140 ? "Medium" : "Large")}
         ${range("cap.outline", "Outline", 0, 14, c.outline, v => v ? v : "None")}${toggle("cap.shadow", "Shadow", c.shadow)}
-        <div class="tpe-row"><span>Words at a time</span><div class="seg tpe-per">${[1, 2, 3, 4, 5].map(v => `<button type="button" data-tf="cap.per" data-v="${v}" aria-pressed="${c.per === v}">${v}</button>`).join("")}</div></div>
-        ${toggle("cap.upper", "Capital letters", c.upper)}${place("cap.y", c.y)}</div>`;
+        <div class="tpe-row"><span>Words at a time</span><div class="seg tpe-per">${perButtons}</div></div>
+        ${toggle("cap.upper", "Capital letters", c.upper)}${place("cap.y", c.y)}</div>
+    </div>`;
   } else if (E.tab === "heading") {
     const h = E.look.hook;
     const pre = presets(HOOK_PRESETS, {...h, outline: h.outline ?? (h.bg ? 0 : 6)}, v => ({...E.look, hook: {...h, ...v, show: true, y: 50}, cap: {...c, y: 85}, layout: "crop", cam: null}));
-    box.innerHTML = `<div class="tpe-sec">${toggle("hook.show", "Show the heading", h.show)}</div>
+    box.innerHTML = `<div class="tpe-panel">
+      <div class="tpe-sec">${toggle("hook.show", "Show the heading", h.show)}</div>
       ${h.show ? `${pre}<div class="tpe-sec"><h4>Font</h4>${fonts("hook.font")}</div>
       <div class="tpe-sec"><h4>Colours</h4>${colors("hook.color", "Text")}${toggle("hook.bg", "Box behind the heading", h.bg)}${h.bg ? colors("hook.bgc", "Box colour") : ""}
         ${range("hook.outline", "Outline", 0, 14, h.outline ?? (h.bg ? 0 : 6), v => v ? v : "None")}</div>
       <div class="tpe-sec"><h4>Size and letters</h4>${range("hook.size", "Size", 60, 160, h.size || 96, v => v < 85 ? "Small" : v < 115 ? "Medium" : "Large")}${toggle("hook.upper", "Capital letters", !!h.upper)}</div>
-      <div class="tpe-sec"><h4>Place</h4>${place("hook.y", h.y)}</div>` : ""}`;
+      <div class="tpe-sec"><h4>Place</h4>${place("hook.y", h.y)}</div>` : ""}
+    </div>`;
   } else {
     const lay = Object.entries(S.tpl.layouts || {}).map(([k, l]) => tile("layout", k, `${tplPrev({...E.look, layout: k, cam: k === "podcast" ? null : E.look.cam, hook: {...E.look.hook, show: false}, cap: {...c, y: null}}, {mini: true})}<em>${esc(l)}</em>`, E.look.layout === k)).join("");
     const pod = E.look.layout === "podcast";
     E.look.cam_style ||= {r: 0, bw: 0, bc: "FFFFFF"};
     const m = E.look.cam, at = (k, l, v) => `<button type="button" class="btn sm${m && JSON.stringify(m) === JSON.stringify(v) ? " primary" : ""}" data-act="tplcam" data-k="${k}">${l}</button>`;
     const pre = presets(LAYOUT_PRESETS, E.look, v => ({...E.look, ...v, hook: {...E.look.hook, show: false}}));
-    box.innerHTML = `${pre}<div class="tpe-sec"><h4>Video</h4><div class="tpe-lays">${lay}</div>${m && tplGeo(E.look).stack ? `<p class="tpe-note">The cam fills the full width, so the game fills the rest of the screen.</p>` : ""}${pod ? `<p class="tpe-note">For podcasts: two people on screen are shown one above the other, one person fills the screen. It switches by itself with the camera.</p>` : ""}</div>
+    box.innerHTML = `<div class="tpe-panel">
+      ${pre}
+      <div class="tpe-sec"><h4>Video</h4><div class="tpe-lays">${lay}</div>${m && tplGeo(E.look).stack ? `<p class="tpe-note">The cam fills the full width, so the game fills the rest of the screen.</p>` : ""}${pod ? `<p class="tpe-note">For podcasts: two people on screen are shown one above the other, one person fills the screen. It switches by itself with the camera.</p>` : ""}</div>
       ${pod ? "" : `<div class="tpe-sec"><h4>Streamer cam</h4>${m ? `<p class="tpe-note">Your streamer's camera goes in this box. Drag it to move it, pull its corner to resize it.</p>
         <div class="tpe-cam">${at("top", "Top half", CAM_AT.top)}${at("bottom", "Bottom half", CAM_AT.bottom)}${at("corner", "Corner", CAM_AT.corner)}<span class="grow"></span><button type="button" class="btn sm ghost" data-act="tplcam" data-k="off">${ic("trash")}Remove</button></div>
         ${range("cam_style.r", "Rounded corners", 0, 50, E.look.cam_style.r, v => Number(v) >= 50 ? "Round" : Number(v) ? v + "%" : "None")}
@@ -5651,7 +5917,8 @@ function tplCtl() {
         ${E.look.cam_src ? srcPic("cam", E.look.cam_src, "Cam") : aiPic()}` : ""}</div>`}
       <div class="tpe-sec" id="tpe-part"><h4>Part of the video</h4><p class="tpe-note">Zoomed-in stream, or only one part matters? Draw the part to show.</p>
         <div class="seg"><button type="button" data-act="tplgsrc" data-k="all" aria-pressed="${!E.look.game_src}">All of it</button><button type="button" data-act="tplgsrc" data-k="part" aria-pressed="${!!E.look.game_src}">Pick a part</button></div>
-        ${E.look.game_src ? srcPic("game", E.look.game_src, "Video") : ""}</div>`;
+        ${E.look.game_src ? srcPic("game", E.look.game_src, "Video") : ""}</div>
+    </div>`;
   }
 }
 function tplSet(path, v) {
@@ -6007,6 +6274,1038 @@ async function drawSettings() {
 }
 async function saveSettings() { const d = {}; $$("#sform [data-s]").forEach(i => d[i.dataset.s] = i.value); await send("/api/settings", d, "PUT"); }
 
+/* ============================================================ AI Series & Story Studio (Plan 05) */
+let _serPollTimer = null;
+
+async function loadSeriesData(force = false) {
+  if (!S.seriesList || force) {
+    try {
+      S.seriesList = await api("/api/series");
+      if (!S.activeSeriesId && S.seriesList.length) S.activeSeriesId = S.seriesList[0].id;
+    } catch (e) {
+      S.seriesList = [];
+    }
+  }
+  if (S.activeSeriesId && (!S.activeSeries || S.activeSeries.id !== S.activeSeriesId || force)) {
+    try {
+      S.activeSeries = await api("/api/series/" + S.activeSeriesId);
+    } catch (e) {
+      S.activeSeries = null;
+    }
+  }
+}
+
+async function openNewShowModal(initialMkt = "IN") {
+  const d = $("#formdlg");
+  S.activeNewShowMkt = initialMkt || "IN";
+  
+  // Fetch market trends from backend
+  let trendsData = [];
+  try {
+    const res = await api(`/api/series/trends?country=${encodeURIComponent(S.activeNewShowMkt)}`);
+    trendsData = res.trends || [];
+  } catch {
+    trendsData = [];
+  }
+  S.currentMarketTrends = trendsData;
+  const initialTrend = trendsData[0] || null;
+  S.selectedTrend = initialTrend;
+
+  const mkt = S.activeNewShowMkt;
+  const curLang = initialTrend?.default_language || (mkt === "IN" ? "hi" : mkt === "JP" ? "ja" : "en");
+  const mktNames = {IN: "Indian Market (🇮🇳)", US: "US & Global (🇺🇸)", JP: "Japan Anime (🇯🇵)", GB: "UK & European (🇬🇧)"};
+
+  d.innerHTML = `<form method="dialog" class="dlg" style="max-width:980px;width:95vw;max-height:92vh;overflow-y:auto;border-radius:18px;padding:26px">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <span style="font-size:22px">✨</span>
+          <h2 style="font-size:20px;font-weight:700;margin:0;color:var(--brand-ink)">3D Series Conception & AI Market Studio</h2>
+          <span class="pill primary sm">AI Insights</span>
+        </div>
+        <p class="sub" style="font-size:13px;margin:0">Explore high-velocity YouTube Kids & 3D Animation market niches, or blueprint a custom continuous franchise.</p>
+      </div>
+      <button type="button" class="btn sm icon ghost" data-act="dlg-close" aria-label="Close">${ic("x")}</button>
+    </div>
+
+    <!-- Country / Market Selector -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">1. Select Target Geographic Market</div>
+      <div class="seg" role="tablist" style="background:var(--muted)">
+        <button type="button" data-act="ser-mkt-switch" data-mkt="IN" aria-pressed="${mkt === 'IN'}">🇮🇳 Indian Market (Panchatantra, Mythology, Gully Tales)</button>
+        <button type="button" data-act="ser-mkt-switch" data-mkt="US" aria-pressed="${mkt === 'US'}">🇺🇸 US & Global (Rescue Trucks, Space Critters, Dinos)</button>
+        <button type="button" data-act="ser-mkt-switch" data-mkt="JP" aria-pressed="${mkt === 'JP'}">🇯🇵 Japan (Chibi Food Spirits, Cloud Train)</button>
+        <button type="button" data-act="ser-mkt-switch" data-mkt="GB" aria-pressed="${mkt === 'GB'}">🇬🇧 UK Storybook (Woodland Animals, Steam Engine)</button>
+      </div>
+    </div>
+
+    <!-- Two-Column Conception Studio -->
+    <div style="display:grid;grid-template-columns:minmax(340px, 1.05fr) minmax(380px, 1.25fr);gap:24px;align-items:start">
+      <!-- Left Column: Franchise Blueprint & Production Settings -->
+      <div id="ser_blueprint_col" style="display:flex;flex-direction:column;gap:14px;background:var(--muted);padding:20px;border-radius:14px;border:1px solid var(--line);transition:border-color 0.25s ease">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--brand-deep)">2. Franchise Blueprint</span>
+          <button type="button" class="btn sm ghost" data-act="ser-ai-title" style="font-size:11px;padding:3px 8px">${ic("sparkle")} AI Title Suggest</button>
+        </div>
+
+        <label class="f">Series / Show Title
+          <input id="modal_ser_title" required placeholder="e.g. Panchatantra 3D: Forest Detectives" value="${esc(initialTrend?.title || 'Farm Friends 3D Adventures')}" />
+        </label>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label class="f">Genre / Theme
+            <input id="modal_ser_genre" required placeholder="e.g. 3D Moral Cartoon Fables" value="${esc(initialTrend?.genre || '3D Cartoon Adventure')}" />
+          </label>
+          <label class="f">Primary Language
+            <select id="modal_ser_lang" style="font-size:12.5px;height:40px;border-radius:8px">
+              ${SER_LANGUAGES.map(l => `<option value="${l.v}" ${curLang === l.v ? 'selected' : ''}>${l.badge} ${l.label}${l.sub ? ' (' + l.sub + ')' : ''}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+
+        <!-- Visual Style Presets -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label class="f" style="margin:0">3D Visual Style DNA</label>
+            <span style="font-size:11px;color:var(--faint)">One-Click Presets:</span>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="high-gloss 3D Pixar toy CGI, octane render, soft volumetric lighting, vibrant primary colors, 8k" style="padding:2px 8px;font-size:11px">🧸 Pixar Toy 3D</button>
+            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="dreamy 3D cinematic animation, golden hour volumetric godrays, glowing celestial magic, vibrant Indian motifs, 8k" style="padding:2px 8px;font-size:11px">✨ Cinematic Godrays</button>
+            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="colorful 3D claymation aesthetic, stylized modern streets, sunlit pastel buildings, warm textures" style="padding:2px 8px;font-size:11px">🎨 Claymation 3D</button>
+            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="soft pastel 3D squishy toy aesthetic, cozy twilight glow, glowing stars, pillowy soft textures" style="padding:2px 8px;font-size:11px">🌙 Bedtime Squishy</button>
+          </div>
+          <textarea id="modal_ser_style" rows="2" style="font-size:11.5px">${esc(initialTrend?.visual_style || 'high-gloss 3D Pixar toy CGI, octane render, soft volumetric lighting, vibrant primary colors, 8k')}</textarea>
+        </div>
+
+        <!-- Initial Character Seeds -->
+        <label class="f">Initial Characters Cast Seed
+          <textarea id="modal_ser_cast" rows="2" style="font-size:12px" placeholder="e.g. Bhalu Bhai (Brown Bear), Chhotu (White Bunny)">${esc(initialTrend && initialTrend.character_seed ? initialTrend.character_seed.map(c => `${c.name} (${c.species || 'Character'})`).join(", ") : "Bhalu Bhai (Brown Bear), Chhotu (White Bunny)")}</textarea>
+          <small class="sub" style="font-size:11px">Avatars & neural voices will be auto-generated in the Character Vault for persistent continuity across every episode.</small>
+        </label>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label class="f">Aspect Ratio
+            <select id="modal_ser_ratio" style="height:40px;border-radius:8px">
+              <option value="16:9" selected>📺 16:9 Landscape (Master)</option>
+              <option value="9:16">📱 9:16 Vertical (Shorts)</option>
+            </select>
+          </label>
+          <label class="f">Story Continuity
+            <select id="modal_ser_mode" style="height:40px;border-radius:8px">
+              <option value="lore_arc" selected>🔗 Episodic Continuity Arc</option>
+              <option value="standalone">🎲 Standalone Adventures</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <!-- Right Column: Live AI Market Trends Feed -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px">🔥</span>
+              <b style="font-size:13px;text-transform:uppercase;color:var(--brand-ink)">Trending in ${mktNames[mkt] || mkt} Animation</b>
+            </div>
+            <span class="sub" style="font-size:11.5px">High-engagement YouTube niches analyzed by AI</span>
+          </div>
+          <span class="pill primary sm">${trendsData.length} Blueprints</span>
+        </div>
+
+        <div id="ser_trends_container" style="display:flex;flex-direction:column;gap:12px;max-height:480px;overflow-y:auto;padding-right:4px">
+          ${trendsData.map((t, idx) => `
+            <div class="card" style="padding:16px;border-radius:12px;border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="pill ${idx === 0 ? 'primary' : 'ok'}" style="font-size:10.5px">${esc(t.category)}</span>
+                <span class="sub" style="font-size:11px">${esc(t.target_audience || 'Kids')}</span>
+              </div>
+              <h4 style="font-size:14px;font-weight:700;margin:0;color:var(--text)">${esc(t.title)}</h4>
+              <p class="sub" style="font-size:12px;line-height:1.45;margin:0">${esc(t.logline)}</p>
+              <div style="font-size:11.5px;color:var(--dim);background:var(--muted);padding:8px 10px;border-radius:8px">
+                <b>👥 Cast:</b> ${(t.character_seed || []).map(c => esc(c.name)).join(", ")} · <b>⚡ Hook:</b> ${esc(t.hook)}
+              </div>
+              <div style="display:flex;justify-content:flex-end;margin-top:2px">
+                <button type="button" class="btn sm primary" data-act="ser-use-trend" data-tidx="${idx}">
+                  ⚡ Use This Blueprint
+                </button>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="dlg-foot" style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px">
+      <button type="button" class="btn ghost" data-act="dlg-close">Cancel</button>
+      <button type="button" class="btn primary" data-act="ser-modal-create-show" style="padding:8px 22px;font-weight:600">
+        🚀 Launch 3D Series & Open Studio
+      </button>
+    </div>
+  </form>`;
+  d.showModal();
+}
+
+async function openNewCharModal() {
+  const d = $("#formdlg");
+  const s = S.activeSeries;
+  const lang = s?.default_language || "en";
+  let voices = [];
+  try {
+    const vres = await api("/api/series/voices?lang=" + encodeURIComponent(lang));
+    voices = vres.voices || [];
+  } catch {}
+  if (!voices.length) {
+    voices = [
+      {id: "en-US-ChristopherNeural", name: "Christopher (Friendly Narrator)"},
+      {id: "en-US-JennyNeural", name: "Jenny (Warm Female)"},
+      {id: "hi-IN-MadhurNeural", name: "Madhur (Hindi Male)"},
+      {id: "hi-IN-SwaraNeural", name: "Swara (Hindi Female)"}
+    ];
+  }
+  d.innerHTML = `<form method="dialog" class="dlg" style="max-width:540px;width:100%">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="font-size:18px;margin:0">${ic("plus")} Add Character to Vault</h2>
+      <button type="button" class="btn sm icon ghost" data-act="dlg-close">${ic("x")}</button>
+    </div>
+    <div style="display:grid;gap:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <label class="f">Character Name
+          <input id="modal_char_name" required placeholder="e.g. Leo the Lion" value="" />
+        </label>
+        <label class="f">Species / Type
+          <input id="modal_char_species" placeholder="e.g. Lion Cub, Robot, Toddler" value="" />
+        </label>
+      </div>
+      <label class="f">Voice Actor (${lang.toUpperCase()})
+        <select id="modal_char_voice">
+          ${voices.map(v => `<option value="${esc(v.id)}">${esc(v.name)}</option>`).join("")}
+        </select>
+      </label>
+      <label class="f">3D Visual Anchor (Persistent DNA)
+        <textarea id="modal_char_visual" rows="2" placeholder="e.g. cute chubby 3d cartoon lion cub, golden fur, tiny red sneakers, expressive large curious eyes" style="font-size:12px"></textarea>
+        <small class="sub" style="font-size:11px">Clothing, fur, colors, features. This visual anchor guarantees 100% 3D consistency across every episode.</small>
+      </label>
+      <label class="f">Personality & Role
+        <input id="modal_char_pers" placeholder="e.g. Playful, brave, loves singing and discovering clues" value="" />
+      </label>
+    </div>
+    <div class="row" style="margin-top:20px;justify-content:flex-end">
+      <button type="button" class="btn ghost" data-act="dlg-close">Cancel</button>
+      <button type="button" class="btn primary" data-act="ser-modal-save-char">${ic("check")} Save & Generate 3D Look</button>
+    </div>
+  </form>`;
+  d.showModal();
+}
+
+function openCharPreviewModal(cid) {
+  const s = S.activeSeries;
+  const c = (s?.characters || []).find(x => x.id === cid || (x.name && slugify(x.name) === cid));
+  if (!c) return;
+  const charId = c.id || slugify(c.name || 'character');
+  const d = $("#formdlg");
+  const avatarUrl = `/api/series/${encodeURIComponent(s.id)}/characters/${encodeURIComponent(charId)}/avatar.jpg?t=${Date.now()}`;
+  d.innerHTML = `<form method="dialog" class="dlg" style="max-width:620px;width:95vw;text-align:center;border-radius:18px;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">🧸</span>
+        <h2 style="font-size:18px;margin:0;font-weight:700">${esc(c.name)} (${esc(c.species || 'Character')})</h2>
+      </div>
+      <button type="button" class="btn sm icon ghost" data-act="dlg-close">${ic("x")}</button>
+    </div>
+    <div style="position:relative;border-radius:14px;overflow:hidden;background:#141624;margin-bottom:16px;max-height:380px;border:1px solid var(--line);box-shadow:inset 0 0 20px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center">
+      <img id="char_modal_img" src="${avatarUrl}" alt="${esc(c.name)}" style="width:100%;max-height:380px;object-fit:contain;display:block" onerror="this.onerror=null;this.src='/brand/favicon.svg'" />
+    </div>
+    <div style="text-align:left;background:var(--muted);padding:14px 18px;border-radius:12px;margin-bottom:18px;border:1px solid var(--line);display:grid;gap:8px">
+      <div style="font-size:13px;display:flex;align-items:center;justify-content:space-between">
+        <span><b>🎙️ Neural Voice Actor:</b> ${esc(c.voice_id || 'Default')}</span>
+        <span class="pill ok sm">Active</span>
+      </div>
+      <div style="font-size:13px"><b>🧠 Personality & Traits:</b> ${esc(c.personality || 'Friendly, curious and kind')}</div>
+      <div style="font-size:12px;color:var(--dim)"><b>🎨 3D Visual Anchor (DNA):</b> ${esc(c.visual_anchor || '3D high-gloss cartoon')}</div>
+    </div>
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <button type="button" class="btn sm ghost" data-act="ser-char-regen" data-cid="${esc(charId)}" style="display:flex;align-items:center;gap:6px">
+        🔄 Re-render 3D Look
+      </button>
+      <button type="button" class="btn primary sm" data-act="dlg-close" style="padding:6px 20px">Done</button>
+    </div>
+  </form>`;
+  d.showModal();
+}
+
+function fmtEpDate(isoStr) {
+  if (!isoStr) return "Recently generated";
+  try {
+    const dt = new Date(isoStr);
+    if (isNaN(dt.getTime())) return isoStr;
+    return dt.toLocaleString([], {month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit"});
+  } catch { return isoStr; }
+}
+
+async function openEpisodePlayerModal(sid, epNum, variant = "master") {
+  let s = (S.activeSeries && S.activeSeries.id === sid) ? S.activeSeries : null;
+  if (!s || !s.episodes || !s.episodes.length) {
+    try {
+      s = await api(`/api/series/${encodeURIComponent(sid)}`);
+      if (S.activeSeriesId === sid || !S.activeSeriesId) {
+        S.activeSeriesId = sid;
+        S.activeSeries = s;
+      }
+    } catch {
+      s = (S.seriesOrganizer?.folders || []).find(x => x.id === sid);
+    }
+  }
+  const ep = (s?.episodes || []).find(x => x.episode_num === +epNum);
+  if (!ep) return toast("Episode not found", "bad");
+
+  const dlg = $("#clipdlg");
+  const isMaster = variant === "master";
+  const mediaUrl = `/api/series/${encodeURIComponent(sid)}/episodes/${epNum}/${variant}`;
+  const downloadUrl = `/api/series/${encodeURIComponent(sid)}/episodes/${epNum}/${variant}?download=1`;
+  const ratioClass = isMaster ? "ce2-16-9" : "";
+
+  // PeakCut Native Video Player Stage (integrated seekbar, timer, play/pause, volume, fullscreen)
+  const stage = `
+    <div class="vp" id="ep_vp_box" style="position:relative;width:100%;height:100%">
+      <!-- In-Player 16:9 vs 9:16 Variant Switcher -->
+      <div style="position:absolute;top:10px;left:10px;z-index:20;display:flex;gap:4px;background:rgba(0,0,0,0.78);backdrop-filter:blur(8px);padding:4px;border-radius:8px;border:1px solid rgba(255,255,255,0.18)">
+        <button type="button" class="btn sm" data-act="ser-cinema-switch" data-sid="${esc(sid)}" data-ep="${epNum}" data-var="master" style="padding:3px 10px;font-size:11px;background:${isMaster ? 'var(--brand)' : 'transparent'};color:${isMaster ? 'var(--brand-ink)' : '#fff'};font-weight:${isMaster ? '700' : '500'};border-radius:6px;border:0">
+          📺 16:9 Master
+        </button>
+        <button type="button" class="btn sm" data-act="ser-cinema-switch" data-sid="${esc(sid)}" data-ep="${epNum}" data-var="short" style="padding:3px 10px;font-size:11px;background:${!isMaster ? 'var(--brand)' : 'transparent'};color:${!isMaster ? 'var(--brand-ink)' : '#fff'};font-weight:${!isMaster ? '700' : '500'};border-radius:6px;border:0">
+          📱 9:16 Short
+        </button>
+      </div>
+
+      <video id="ep_cinema_video" src="${mediaUrl}" autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000;display:block"></video>
+      <button type="button" class="vp-big" aria-label="Play">${VP.play}</button>
+      <div class="vp-bar">
+        <button type="button" class="vp-b vp-pp" aria-label="Play or pause">${VP.pause}</button>
+        <input type="range" class="vp-seek" min="0" max="1000" value="0" step="1" aria-label="Seek"><span class="vp-t">0:00</span>
+        <button type="button" class="vp-b vp-mute" aria-label="Sound on or off">${VP.vol}</button>
+        <button type="button" class="vp-b vp-fs" aria-label="Full screen">${VP.fs}</button>
+      </div>
+    </div>
+  `;
+
+  dlg.innerHTML = `
+    <div class="ce2 ce3 ${ratioClass}" style="${isMaster ? 'grid-template-columns:minmax(480px, calc(var(--ch) * 16 / 9)) minmax(360px, 420px);max-width:min(1420px, calc(100vw - 32px))' : ''}">
+      <div class="ce2-l" style="padding:0!important;background:#000!important">
+        <div class="ce2-box" style="${isMaster ? 'aspect-ratio:16/9;width:100%' : 'aspect-ratio:9/16'}">
+          <div id="stage" class="ce2-vid">${stage}</div>
+        </div>
+      </div>
+      <div class="ce2-r">
+        <!-- PeakCut Style Header -->
+        <div class="ce3-head">
+          <div>
+            <b title="${esc(ep.title || `Episode ${ep.episode_num}`)}">Episode ${ep.episode_num} · ${esc(ep.title)}</b>
+            <span>${fmt(ep.duration || 0)} · ${esc(s?.title || '3D Series')} · ${isMaster ? '16:9 Master Video' : '9:16 Viral Short'}</span>
+          </div>
+          <button class="btn icon ghost sm" data-act="closedlg" aria-label="Close">${ic("x")}</button>
+        </div>
+
+        <!-- Editable Title with AI Rewrite -->
+        <div class="ce3-f">
+          <label>Title <button type="button" class="btn sm ghost ce3-ai" data-act="ser-ep-ai-title" data-sid="${esc(sid)}" data-ep="${epNum}">${ic("bolt")} Write again with AI</button></label>
+          <input id="ep_dlg_title" maxlength="100" value="${esc(ep.title)}" placeholder="Episode title">
+        </div>
+
+        <!-- Story Synopsis / Narrative Arc -->
+        <div class="ce3-f">
+          <label>Story Synopsis & Scene Arc</label>
+          <textarea id="ep_dlg_synopsis" rows="2" maxlength="1000" placeholder="Story narrative">${esc(ep.summary || '')}</textarea>
+        </div>
+
+        <!-- Showrunner AI Director's Spoken Walkthrough -->
+        <div class="ce3-f" style="background:var(--muted);padding:10px 12px;border-radius:10px;border:1px solid var(--line)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:700">🎙️ Showrunner Narrative Audio Walkthrough</span>
+            <span class="pill ok sm">AI Director</span>
+          </div>
+          <audio src="/api/series/${encodeURIComponent(sid)}/episodes/${epNum}/narrative/audio" controls style="width:100%;height:32px;margin-bottom:8px"></audio>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+            <div style="background:rgba(255,255,255,0.7);padding:6px;border-radius:6px">
+              <b>💡 Why Chosen:</b>
+              <p style="margin:2px 0 0;color:var(--dim);line-height:1.3">${esc(ep.narrative_walkthrough?.context_motivation || 'Fosters problem-solving and character bonding.')}</p>
+            </div>
+            <div style="background:rgba(255,255,255,0.7);padding:6px;border-radius:6px">
+              <b>⏩ Next Teaser:</b>
+              <p style="margin:2px 0 0;color:var(--dim);line-height:1.3">${esc(ep.unresolved_hook || 'An intriguing hook sets up the next episode.')}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Style & Visual DNA Chip -->
+        <div class="ce3-f">
+          <label>3D Visual Style & Subtitle Theme</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="chip tpc-btn" style="flex:1;cursor:default">
+              <span class="tpm">${ic("film")}</span>
+              <span class="pv"><small>3D Aesthetic</small>${esc(s?.visual_style ? s.visual_style.slice(0, 28) + '...' : 'Pixar 3D Toy')}</span>
+            </div>
+            <button type="button" class="btn sm ghost" data-act="ser-style-toggle-info" style="font-size:11.5px">3D DNA</button>
+          </div>
+        </div>
+
+        <!-- Cast in this Episode -->
+        <div class="ce3-f">
+          <label>Featured Cast</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${(ep.featured_characters || []).map(cn => `<span class="pill sm" style="font-size:11px">🐾 ${esc(cn)}</span>`).join("") || '<span class="sub" style="font-size:11px">All Series Characters</span>'}
+          </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:12px;border-top:1px solid var(--line)">
+          <a class="btn sm ghost" href="${downloadUrl}" download style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;font-size:12px">
+            ${ic("down")} Download MP4
+          </a>
+          <div class="row" style="gap:8px">
+            <button type="button" class="btn sm ghost" data-act="ser-ep-save" data-sid="${esc(sid)}" data-ep="${epNum}">Save</button>
+            <button type="button" class="btn sm primary" data-act="closedlg">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  dlg.showModal();
+  vpWire();
+}
+
+async function drawLibraryOrganizer() {
+  const root = $("#libOrganizer"); if (!root) return;
+  if (!S.libView) S.libView = "clips";
+  if (!S.openFolders) S.openFolders = {};
+  if (!S.seriesOrganizer) {
+    try {
+      S.seriesOrganizer = await api("/api/series/organizer");
+    } catch {
+      S.seriesOrganizer = {folders: []};
+    }
+  }
+  const folders = S.seriesOrganizer.folders || [];
+  const serPerPage = 5;
+  const totalSerPages = Math.max(1, Math.ceil(folders.length / serPerPage));
+  if (!S.serPage || S.serPage < 1) S.serPage = 1;
+  if (S.serPage > totalSerPages) S.serPage = totalSerPages;
+  const curSerPage = S.serPage;
+  const pagedFolders = folders.slice((curSerPage - 1) * serPerPage, curSerPage * serPerPage);
+
+  root.innerHTML = `<div class="lib-org-wrap" style="margin-bottom:20px">
+    <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:nowrap;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
+      <div style="display:inline-flex;align-items:center;background:var(--muted);padding:4px;border-radius:11px;border:1px solid var(--line);gap:4px;flex-shrink:0">
+        <button type="button" data-act="lib-view" data-v="clips" style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;border:none;background:${S.libView !== 'series' ? 'var(--brand-soft)' : 'transparent'};color:${S.libView !== 'series' ? 'var(--brand-ink)' : 'var(--dim)'};font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;transition:all 0.15s ease">
+          <span>📹 Individual Clips</span>
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${S.libView !== 'series' ? 'rgba(255,255,255,0.9)' : 'var(--line)'};color:${S.libView !== 'series' ? 'var(--brand-deep)' : 'var(--dim)'}">${S.jobs.length}</span>
+        </button>
+        <button type="button" data-act="lib-view" data-v="series" style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;border:none;background:${S.libView === 'series' ? 'var(--brand-soft)' : 'transparent'};color:${S.libView === 'series' ? 'var(--brand-ink)' : 'var(--dim)'};font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;transition:all 0.15s ease">
+          <span>📁 Series & Episodes</span>
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${S.libView === 'series' ? 'rgba(255,255,255,0.9)' : 'var(--line)'};color:${S.libView === 'series' ? 'var(--brand-deep)' : 'var(--dim)'}">${folders.length} Shows</span>
+        </button>
+      </div>
+      ${S.libView === 'series' ? `<button class="btn sm primary" data-act="ser-new-show-btn" style="white-space:nowrap;flex-shrink:0">${ic("plus")} New 3D Series</button>` : ''}
+    </div>
+    ${S.libView === 'series' ? `
+      <div class="ser-organizer" style="display:grid;gap:16px;margin-bottom:24px">
+        ${folders.length ? pagedFolders.map(f => `
+          <div class="card ser-folder-card" style="padding:20px;border-radius:14px;border:1px solid var(--line);background:var(--muted)">
+            <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" data-act="toggle-series-folder" data-sid="${esc(f.id)}">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-size:24px">📁</span>
+                <div>
+                  <b style="font-size:16px">${esc(f.title)}</b>
+                  <span class="sub" style="font-size:12px;display:block">${esc(f.genre)} · Language: ${(f.default_language || 'EN').toUpperCase()} · ${f.episodes_count} Episode${f.episodes_count === 1 ? '' : 's'}</span>
+                </div>
+              </div>
+              <div class="row" style="align-items:center;gap:8px">
+                <button type="button" class="btn sm" data-act="open-in-studio" data-sid="${esc(f.id)}">${ic("sparkle")} Open in Studio</button>
+                <button type="button" class="btn sm ghost" data-act="ser-delete-show" data-sid="${esc(f.id)}" data-title="${esc(f.title)}" style="color:#ef4444;border-color:rgba(239,68,68,0.25)" title="Delete series">${ic("trash")} Delete</button>
+                <span style="font-size:13px;color:var(--faint);margin-left:4px">${S.openFolders[f.id] === false ? '▼' : '▲'}</span>
+              </div>
+            </div>
+
+            ${S.openFolders[f.id] === false ? '' : `
+              <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);display:grid;gap:10px">
+                ${f.episodes && f.episodes.length ? f.episodes.map(ep => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg);border-radius:10px;border:1px solid var(--line);flex-wrap:wrap;gap:10px">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <span class="pill ${ep.status === 'completed' ? 'ok' : 'warn'}">Ep ${ep.episode_num}</span>
+                      <div>
+                        <b style="font-size:14px">${esc(ep.title)}</b>
+                        <span class="sub" style="font-size:12px;display:block">Duration: ${ep.duration || 0}s ${ep.has_master ? '· 16:9 Master' : ''} ${ep.has_short ? '· 9:16 Short' : ''}</span>
+                      </div>
+                    </div>
+                    <div class="row" style="align-items:center;gap:8px">
+                      ${ep.has_master || ep.master_url ? `<button type="button" class="btn sm primary" data-act="ser-watch-cinema" data-sid="${esc(f.id)}" data-ep="${ep.episode_num}" data-var="master" style="display:inline-flex;align-items:center;gap:6px">${ic("play")} Watch 16:9</button>` : ''}
+                      ${ep.has_short || ep.short_url ? `<button type="button" class="btn sm ghost" data-act="ser-watch-cinema" data-sid="${esc(f.id)}" data-ep="${ep.episode_num}" data-var="short" style="display:inline-flex;align-items:center;gap:6px">${ic("film")} 9:16 Short</button>` : ''}
+                      <button type="button" class="btn sm ghost" data-act="ser-delete-episode" data-sid="${esc(f.id)}" data-ep="${ep.episode_num}" data-title="${esc(ep.title)}" style="color:#ef4444;border-color:rgba(239,68,68,0.25);padding:5px 8px" title="Delete Episode ${ep.episode_num}">${ic("trash")}</button>
+                    </div>
+                  </div>
+                `).join("") : '<p class="sub" style="font-size:12px">No episodes rendered in this series folder yet.</p>'}
+              </div>
+            `}
+          </div>
+        `).join("") : '<div class="empty"><b>No series created yet</b><p>Click "New 3D Series" to start your first animated episodic show.</p></div>'}
+      </div>
+      ${folders.length > serPerPage || totalSerPages > 1 ? `
+        <div style="margin:20px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 18px;background:var(--muted);border-radius:12px;border:1px solid var(--line)">
+          <span class="sub" style="font-size:13px;font-weight:500">Showing <b>${(curSerPage - 1) * serPerPage + 1}-${Math.min(folders.length, curSerPage * serPerPage)}</b> of <b>${folders.length}</b> Series Shows</span>
+          <div class="row" style="align-items:center;gap:6px">
+            <button type="button" class="btn sm" data-act="ser-lib-page" data-p="${curSerPage - 1}" ${curSerPage <= 1 ? 'disabled style="opacity:0.5"' : ''}>‹ Previous</button>
+            <span style="font-size:12px;font-weight:600;padding:4px 10px;background:rgba(255,255,255,0.8);border-radius:6px;border:1px solid var(--line)">Page ${curSerPage} of ${totalSerPages}</span>
+            <button type="button" class="btn sm" data-act="ser-lib-page" data-p="${curSerPage + 1}" ${curSerPage >= totalSerPages ? 'disabled style="opacity:0.5"' : ''}>Next ›</button>
+          </div>
+        </div>
+      ` : ''}
+    ` : ''}
+  </div>`;
+
+  if ($("#jobs")) $("#jobs").style.display = S.libView === "series" ? "none" : "";
+  if ($("#add")) $("#add").style.display = S.libView === "series" ? "none" : "";
+}
+
+async function drawSeriesStudio() {
+  const box = $("#view"); if (!box) return;
+  if (!S.serTab) S.serTab = "pitches";
+  
+  if (!S.seriesList || !S.activeSeries || S.activeSeries.id !== S.activeSeriesId) {
+    box.innerHTML = `<div style="padding:60px 20px;text-align:center"><div class="spin" style="margin:0 auto 16px;width:32px;height:32px"></div><p class="sub">Loading AI Series Studio...</p></div>`;
+    await loadSeriesData(true);
+  }
+
+  // If no series exists yet, show quick series creator card
+  if (!S.seriesList || !S.seriesList.length) {
+    box.innerHTML = `<div style="max-width:680px;margin:40px auto;padding:36px;background:var(--muted);border-radius:16px;border:1px solid var(--line);text-align:center">
+      <h2 style="font-size:22px;margin-bottom:8px">🎬 AI 3D Episodic Series Studio</h2>
+      <p class="sub" style="margin-bottom:24px">Create ongoing animated shows with persistent 3D characters, memory continuity across episodes, and autonomous storytelling.</p>
+      <button class="btn primary" data-act="ser-new-show-btn" style="padding:12px 24px;font-size:15px">${ic("sparkle")} Create Your First 3D Series</button>
+    </div>`;
+    return;
+  }
+
+  const s = S.activeSeries;
+  const epCount = (s.episodes || []).length;
+  const charCount = (s.characters || []).length;
+  const lang = s.default_language || "en";
+
+  let bodyHtml = "";
+
+  // 1. Pitches Tab
+  if (S.serTab === "pitches") {
+    const pitches = S.serPitches || [];
+    const targetScenes = S.serTargetScenes || 12;
+    const sceneDur = S.serSceneDur || 60;
+    const estTotalSec = targetScenes * sceneDur;
+    const estMins = Math.round(estTotalSec / 60);
+    bodyHtml = `
+      <div style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <h3 style="font-size:16px;font-weight:600">💡 AI Continuation Pitches (Episode ${epCount + 1})</h3>
+          <p class="sub">Analyzed from past episodes and ongoing world lore in ${lang.toUpperCase()}.</p>
+        </div>
+        <button class="btn sm" data-act="ser-fetch-pitches">${ic("sparkle")} Refresh AI Ideas</button>
+      </div>
+
+      <!-- Episode Length & Target Scenes Selector for Long Video Format -->
+      <div style="background:rgba(255,255,255,0.85);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.03)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+          <div>
+            <b style="font-size:14px;color:var(--brand-ink)">⏱️ Long Video Episode Format & Duration:</b>
+            <p class="sub" style="font-size:12px;margin:2px 0 0">Configure episode scene count and pacing for true YouTube long-form content:</p>
+          </div>
+          <span class="pill primary" style="font-size:12px;padding:6px 14px;font-weight:700">
+            🎯 Target Episode Duration: ~${estMins} Minutes (${targetScenes} scenes · ~${sceneDur}s each)
+          </span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:600;color:var(--dim);min-width:120px">Number of Scenes:</span>
+            <div class="row" style="gap:6px;flex-wrap:wrap">
+              <button type="button" class="btn sm ${targetScenes === 6 ? 'primary' : ''}" data-act="ser-set-scenes" data-scenes="6">6 Scenes</button>
+              <button type="button" class="btn sm ${targetScenes === 10 ? 'primary' : ''}" data-act="ser-set-scenes" data-scenes="10">10 Scenes</button>
+              <button type="button" class="btn sm ${targetScenes === 12 ? 'primary' : ''}" data-act="ser-set-scenes" data-scenes="12">12 Scenes (Recommended)</button>
+              <button type="button" class="btn sm ${targetScenes === 16 ? 'primary' : ''}" data-act="ser-set-scenes" data-scenes="16">16 Scenes (Feature)</button>
+              <button type="button" class="btn sm ${targetScenes === 20 ? 'primary' : ''}" data-act="ser-set-scenes" data-scenes="20">20 Scenes (Mega Saga)</button>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:600;color:var(--dim);min-width:120px">Scene Length / Pacing:</span>
+            <div class="row" style="gap:6px;flex-wrap:wrap">
+              <button type="button" class="btn sm ${sceneDur === 20 ? 'primary' : ''}" data-act="ser-set-dur" data-dur="20">⚡ Snappy (~20s / scene)</button>
+              <button type="button" class="btn sm ${sceneDur === 35 ? 'primary' : ''}" data-act="ser-set-dur" data-dur="35">🎬 Narrative (~35s / scene)</button>
+              <button type="button" class="btn sm ${sceneDur === 60 ? 'primary' : ''}" data-act="ser-set-dur" data-dur="60">📖 1-Minute / Scene (~60s — Long YouTube Video!)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:32px">
+        ${pitches.length ? pitches.map((p, i) => `
+          <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;padding:20px;border-radius:14px;border:1px solid var(--line);background:var(--muted)">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span class="pill ${p.type === 'mystery' ? 'warn' : p.type === 'new_character' ? 'ok' : 'primary'}" style="text-transform:capitalize">${esc(p.type || 'Adventure')}</span>
+                <span class="sub" style="font-size:11px">Option ${i + 1}</span>
+              </div>
+              <h4 style="font-size:15px;font-weight:600;margin-bottom:6px">${esc(p.title)}</h4>
+              <p class="sub" style="font-size:13px;line-height:1.5;margin-bottom:12px">${esc(p.logline)}</p>
+              ${p.hook ? `<div style="font-size:12px;padding:8px 10px;background:rgba(255,255,255,0.6);border-radius:8px;margin-bottom:12px"><b>Hook:</b> ${esc(p.hook)}</div>` : ''}
+              ${p.new_character ? `<div style="font-size:12px;color:var(--brand-deep);margin-bottom:12px">✨ Introduces new character: <b>${esc(p.new_character.name)}</b> (${esc(p.new_character.species || '')})</div>` : ''}
+            </div>
+            <button class="btn primary sm" style="width:100%;margin-top:10px" data-act="ser-pick-pitch" data-idx="${i}">
+              ${ic("sparkle")} Select & Write ${targetScenes}-Scene Script (~${estMins}m)
+            </button>
+          </div>
+        `).join("") : `
+          <div class="card" style="grid-column:1/-1;padding:32px;text-align:center;background:var(--muted)">
+            <p class="sub" style="margin-bottom:12px">No pitches generated yet for Episode ${epCount + 1}.</p>
+            <button class="btn primary" data-act="ser-fetch-pitches">${ic("sparkle")} Generate AI Episode Pitches</button>
+          </div>
+        `}
+      </div>
+
+      <div class="card" style="padding:22px;background:var(--muted);border-radius:14px;border:1px solid var(--line)">
+        <h4 style="font-size:14px;font-weight:600;margin-bottom:6px">Or Enter Your Custom Seed Idea</h4>
+        <p class="sub" style="font-size:12px;margin-bottom:12px">Write a specific direction, topic, or quest for Episode ${epCount + 1}:</p>
+        <div style="display:flex;gap:10px">
+          <input id="ser_custom_prompt" placeholder="e.g. A 3D animated episode where our friends build a wooden treehouse..." style="flex:1" />
+          <button class="btn primary" data-act="ser-custom-script">${ic("play")} Write ${targetScenes}-Scene Script (~${estMins}m)</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. Script & Approval Gate Tab
+  else if (S.serTab === "script") {
+    const sc = S.draftScript;
+    const task = S.serProdStatus;
+
+    if (task && task.status === "rendering") {
+      bodyHtml = `
+        <div class="card" style="padding:40px;text-align:center;background:var(--muted);border-radius:16px">
+          <div class="spin" style="margin:0 auto 16px;width:36px;height:36px"></div>
+          <h3 style="font-size:18px;font-weight:600;margin-bottom:8px">🚀 Production in Progress...</h3>
+          <p class="sub" style="font-size:14px;margin-bottom:18px">${esc(task.message || 'Synthesizing voiceover, generating 3D visuals, and stitching scenes...')}</p>
+          <div style="max-width:400px;margin:0 auto;height:8px;border-radius:999px;background:var(--line);overflow:hidden">
+            <div style="height:100%;width:${task.progress || 10}%;background:var(--brand);transition:width 0.4s ease"></div>
+          </div>
+          <span style="font-size:12px;color:var(--faint);display:block;margin-top:10px">${task.progress || 10}% completed</span>
+        </div>
+      `;
+    } else if (task && task.status === "completed") {
+      const epNum = task.ep_num || epCount || 1;
+      bodyHtml = `
+        <div class="card" style="padding:32px;background:var(--muted);border-radius:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <span class="pill ok" style="margin-bottom:6px">Production Complete!</span>
+              <h3 style="font-size:20px;font-weight:700">${esc(sc ? sc.title : 'Episode Completed')}</h3>
+              <p class="sub">Duration: ${task.duration || 0}s | 16:9 Master Video + 9:16 Shorts</p>
+            </div>
+            <div class="row" style="gap:8px">
+              <button class="btn sm primary" data-act="ser-watch-cinema" data-sid="${esc(s.id)}" data-ep="${epNum}" data-var="master">${ic("play")} Open In-App Cinema</button>
+              <button class="btn sm" data-act="ser-tab" data-t="pitches">${ic("sparkle")} Plan Next Episode</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0, 2fr) minmax(0, 1fr);gap:20px">
+            <div>
+              <h4 style="font-size:13px;font-weight:600;margin-bottom:8px">📺 Master 16:9 Long Video</h4>
+              <video src="/api/series/${encodeURIComponent(s.id)}/episodes/${epNum}/master" controls playsinline style="width:100%;border-radius:12px;background:#000"></video>
+            </div>
+            ${task.short_file ? `
+            <div>
+              <h4 style="font-size:13px;font-weight:600;margin-bottom:8px">📱 Viral 9:16 Teaser Short</h4>
+              <video src="/api/series/${encodeURIComponent(s.id)}/episodes/${epNum}/short" controls playsinline style="width:100%;border-radius:12px;background:#000;max-height:360px;object-fit:contain"></video>
+            </div>` : ''}
+          </div>
+        </div>
+      `;
+    } else if (sc && sc.scenes && sc.scenes.length) {
+      const nw = sc.narrative_walkthrough || {
+        context_motivation: "Designed to explore character bonds, curious mysteries, and cooperative problem-solving through 3D storytelling.",
+        previous_bridge: epCount > 0 ? `Bridges directly from Episode ${epCount}'s cliffhanger.` : "Debut franchise premiere introducing our recurring characters to their 3D world.",
+        current_journey: sc.synopsis || "An exciting episodic adventure.",
+        next_teaser: sc.unresolved_hook || "A surprise mystery clue that sets up the next episode.",
+        full_spoken_script: `Welcome to the Showrunner's Walkthrough for ${sc.title || 'this episode'}. ${sc.synopsis || ''}. Enjoy the adventure!`
+      };
+
+      bodyHtml = `
+        <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div>
+            <span class="pill primary" style="margin-bottom:4px">Director's Review & Approval Gate</span>
+            <h3 style="font-size:18px;font-weight:700">${esc(sc.title || 'Draft Script')}</h3>
+            <p class="sub">${esc(sc.synopsis || '')} (${sc.scenes.length} Scenes)</p>
+          </div>
+          <button class="btn primary" data-act="ser-approve-prod" style="font-size:14px;padding:10px 18px">
+            ${ic("play")} 🚀 Approve & Start Full Production
+          </button>
+        </div>
+
+        <!-- Director's Episode Narrative & Walkthrough Card with Audio Playback -->
+        <div class="card" style="padding:20px 24px;background:var(--muted);border-radius:14px;border:1px solid var(--line);margin-bottom:22px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:22px">🎙️</span>
+              <div>
+                <b style="font-size:15px;color:var(--brand-ink)">Director's Narrative & Continuity Audio Walkthrough</b>
+                <p class="sub" style="font-size:12px;margin:0">Context behind why this episode was chosen, past story continuity, and next episode foreshadowing.</p>
+              </div>
+            </div>
+            <button type="button" class="btn sm primary" data-act="ser-listen-narrative-draft" style="display:flex;align-items:center;gap:6px;padding:7px 14px">
+              🎧 Listen to Director's Narrative
+            </button>
+          </div>
+
+          <div id="draft_narrative_player_box" style="display:none;margin-bottom:14px;padding:12px 14px;background:#18181b;border-radius:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;color:#fff">
+              <span>🎧 Showrunner Spoken Walkthrough</span>
+              <span style="font-size:11px;color:#9ca3af">Neural Audio</span>
+            </div>
+            <audio id="draft_narrative_audio" controls style="width:100%;height:36px"></audio>
+          </div>
+
+          <!-- 4-Pillar Narrative Breakdown Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;font-size:12px">
+            <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2)">
+              <b style="color:var(--brand-deep)">💡 Context & Why Chosen:</b>
+              <p style="margin:4px 0 0;color:var(--text);line-height:1.45">${esc(nw.context_motivation)}</p>
+            </div>
+            <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2)">
+              <b style="color:#2563eb">⏪ Previous Episode Bridge:</b>
+              <p style="margin:4px 0 0;color:var(--text);line-height:1.45">${esc(nw.previous_bridge)}</p>
+            </div>
+            <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2)">
+              <b style="color:#059669">📖 Current Episode Arc:</b>
+              <p style="margin:4px 0 0;color:var(--text);line-height:1.45">${esc(nw.current_journey)}</p>
+            </div>
+            <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2)">
+              <b style="color:#d97706">⏩ Next Episode Teaser:</b>
+              <p style="margin:4px 0 0;color:var(--text);line-height:1.45">${esc(nw.next_teaser)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <div>
+            <h4 style="font-size:15px;font-weight:700">🎬 Episodic Scene Breakdown (${sc.scenes.length} Scenes)</h4>
+            <p class="sub" id="ser_est_dur_hdr" style="font-size:12px;margin:0">Estimated Duration: ~${Math.round(sc.scenes.reduce((acc, x) => acc + (x.duration_sec || 55), 0))}s (~${(sc.scenes.reduce((acc, x) => acc + (x.duration_sec || 55), 0) / 60).toFixed(1)} mins) · 📺 16:9 Long Video + 📱 9:16 Short</p>
+          </div>
+          <div class="row" style="gap:8px">
+            <button type="button" class="btn sm" data-act="ser-regen-script" style="display:flex;align-items:center;gap:6px">
+              ${ic("sparkle")} Re-write with AI
+            </button>
+            <button type="button" class="btn sm primary" data-act="ser-add-scene" style="display:flex;align-items:center;gap:6px">
+              ${ic("plus")} ➕ Add Scene
+            </button>
+          </div>
+        </div>
+
+        <div style="display:grid;gap:14px;margin-bottom:24px">
+          ${sc.scenes.map((sn, i) => {
+            const chars = s.characters || [];
+            const speakerItems = [
+              { v: "Narrator", label: "Narrator", sub: "Host Voiceover", badge: "🎙️" },
+              ...chars.map(c => ({
+                v: c.name,
+                label: c.name,
+                sub: `${c.species || 'Character'}${c.voice_id ? ' · ' + c.voice_id.split('-').slice(-1)[0] : ''}`,
+                badge: "👤"
+              }))
+            ];
+            const cameraItems = [
+              { v: "dolly_in", label: "Dolly In", sub: "Camera glides forward toward subject", badge: "📹" },
+              { v: "dolly_out", label: "Dolly Out", sub: "Camera retreats smoothly revealing scene", badge: "📹" },
+              { v: "pan_left", label: "Pan Left", sub: "Horizontal sweep to the left", badge: "📹" },
+              { v: "pan_right", label: "Pan Right", sub: "Horizontal sweep to the right", badge: "📹" },
+              { v: "zoom_in", label: "Zoom In", sub: "Lens tightens framing on character", badge: "🔍" },
+              { v: "zoom_out", label: "Zoom Out", sub: "Lens widens perspective of scene", badge: "🔍" },
+              { v: "orbit", label: "Orbit", sub: "Circular trajectory around subject", badge: "🔄" }
+            ];
+            return `
+            <div class="card" style="padding:16px 18px;background:var(--muted);border-radius:14px;border:1px solid var(--line)">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:240px">
+                  <span class="pill primary" style="font-weight:700">Scene ${sn.scene_num || i + 1}</span>
+                  <input type="text" value="${esc(sn.setting || '')}" placeholder="Setting / Location" data-ser-scene-field="setting" data-idx="${i}" style="font-size:13px;font-weight:600;padding:5px 10px;flex:1;background:#fff;border:1px solid var(--line);border-radius:8px" />
+                </div>
+                <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+                  ${searchPicker("ser_spk_" + i, "🎙️", "Speaker", speakerItems, sn.speaker || "Narrator", "Search character...", {
+                    attrs: `data-ser-scene-field="speaker" data-idx="${i}"`,
+                    btnStyle: "height:32px;padding:0 10px;font-size:12px;border-radius:8px",
+                    width: "125px",
+                    menuMinW: "240px"
+                  })}
+                  ${searchPicker("ser_cam_" + i, "📹", "Camera motion", cameraItems, sn.camera_motion || "dolly_in", "Search camera motion...", {
+                    attrs: `data-ser-scene-field="camera_motion" data-idx="${i}"`,
+                    btnStyle: "height:32px;padding:0 10px;font-size:12px;border-radius:8px",
+                    width: "120px",
+                    menuMinW: "260px",
+                    align: "right"
+                  })}
+                  <label style="display:inline-flex;align-items:center;gap:3px;font-size:11px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:2px 6px;cursor:pointer" title="Scene Target Duration in seconds">
+                    <span>⏱️</span>
+                    <input type="number" min="10" max="180" step="5" value="${Math.round(sn.duration_sec || 55)}" data-ser-scene-field="duration_sec" data-idx="${i}" style="width:36px;border:none;background:transparent;font-size:11px;font-weight:700;padding:0;text-align:center;color:var(--brand-ink)" />
+                    <span style="color:var(--dim)">s</span>
+                  </label>
+                  <button type="button" class="btn sm danger" data-act="ser-del-scene" data-idx="${i}" title="Delete Scene" style="padding:4px 8px;font-size:12px">🗑️</button>
+                </div>
+              </div>
+
+              <div style="margin-bottom:10px">
+                <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--brand-ink)" class="ser-scene-dlg-label">💬 Spoken Dialogue (${esc(sn.speaker || 'Narrator')}):</label>
+                <textarea rows="3" data-ser-scene-field="dialogue" data-idx="${i}" style="width:100%;font-size:13px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;line-height:1.4" placeholder="Detailed spoken dialogue and narrative for voiceover...">${esc(sn.dialogue || '')}</textarea>
+              </div>
+
+              <div>
+                <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;color:var(--dim)">🎨 3D Visual Generation Prompt (Multi-plane Pixar Octane render):</label>
+                <textarea rows="2" data-ser-scene-field="visual_prompt" data-idx="${i}" style="width:100%;font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;line-height:1.4;color:var(--text)" placeholder="Visual prompt for 3D generation...">${esc(sn.visual_prompt || '')}</textarea>
+              </div>
+            </div>`;
+          }).join("")}
+
+          <div style="text-align:center;padding:10px">
+            <button type="button" class="btn primary" data-act="ser-add-scene" style="padding:10px 22px;font-size:14px;border-radius:10px">
+              ${ic("plus")} ➕ Add Next Scene (Scene ${sc.scenes.length + 1})
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="card" style="padding:48px 20px;text-align:center;background:var(--muted);border-radius:14px">
+          <p class="sub" style="font-size:14px;margin-bottom:14px">No draft script currently active for review.</p>
+          <button class="btn primary" data-act="ser-tab" data-t="pitches">${ic("sparkle")} Pick an AI Pitch from Ideas</button>
+        </div>
+      `;
+    }
+  }
+
+  // 3. Character Vault Tab
+  else if (S.serTab === "cast") {
+    const chars = s.characters || [];
+    bodyHtml = `
+      <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h3 style="font-size:16px;font-weight:600">👥 Character Vault (${chars.length})</h3>
+          <p class="sub">Persistent 3D visual anchors, portraits, and neural voices that stay consistent across every episode.</p>
+        </div>
+        <button class="btn sm primary" data-act="ser-add-char-dlg">${ic("plus")} Add Character</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px">
+        ${chars.map(c => {
+          const charId = c.id || slugify(c.name || 'character');
+          return `
+          <div class="card" style="padding:16px;background:var(--muted);border-radius:14px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between">
+            <div>
+              <div style="position:relative;width:100%;height:160px;border-radius:10px;overflow:hidden;background:#18181b;margin-bottom:12px;border:1px solid var(--line)">
+                <img src="/api/series/${encodeURIComponent(s.id)}/characters/${encodeURIComponent(charId)}/avatar.jpg?v=${S.avatarVer || 1}" alt="${esc(c.name)}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.onerror=null;this.src='/brand/favicon.svg'" />
+                <button class="btn sm" style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.7);color:#fff;backdrop-filter:blur(6px);padding:4px 10px;font-size:11px;border-radius:6px;border:1px solid rgba(255,255,255,0.2)" data-act="ser-char-preview" data-cid="${esc(charId)}">👁️ 3D Preview</button>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+                <div>
+                  <b style="font-size:15px">${esc(c.name)}</b>
+                  <span class="sub" style="font-size:12px;display:block">${esc(c.species || 'Character')}</span>
+                </div>
+                <span class="pill" style="font-size:11px">🎙️ ${esc(c.voice_id || 'Default')}</span>
+              </div>
+              <div style="font-size:12px;background:rgba(255,255,255,0.7);padding:8px 10px;border-radius:8px;line-height:1.4;margin-top:6px">
+                <b>3D Visual DNA:</b> ${esc(c.visual_anchor || 'None specified')}
+              </div>
+            </div>
+            <div class="row" style="margin-top:12px;justify-content:flex-end">
+              <button class="btn sm ghost" data-act="ser-char-regen" data-cid="${esc(charId)}" style="font-size:11px">🔄 Re-render 3D Look</button>
+            </div>
+          </div>
+        `}).join("")}
+      </div>
+    `;
+  }
+
+  // 4. Episodes Tab
+  else if (S.serTab === "episodes") {
+    const eps = s.episodes || [];
+    if (!S.epSortOrder) S.epSortOrder = "latest";
+    const sortedEps = [...eps].sort((a, b) => {
+      const timeA = new Date(a.updated_at || a.created_at || 0).getTime() || (a.episode_num * 10000);
+      const timeB = new Date(b.updated_at || b.created_at || 0).getTime() || (b.episode_num * 10000);
+      return S.epSortOrder === "latest" ? (timeB - timeA) : (timeA - timeB);
+    });
+
+    bodyHtml = `
+      <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <h3 style="font-size:16px;font-weight:600">🎞️ Episodes & Playlists (${eps.length})</h3>
+          <p class="sub">Autonomous episodic renders with 3D continuity. Sorted newest first.</p>
+        </div>
+        <div class="seg" role="tablist">
+          <button type="button" data-act="ser-sort-eps" data-order="latest" aria-pressed="${S.epSortOrder === 'latest'}">⚡ Latest First (Top)</button>
+          <button type="button" data-act="ser-sort-eps" data-order="oldest" aria-pressed="${S.epSortOrder === 'oldest'}">🔢 Episode 1..N</button>
+        </div>
+      </div>
+
+      <div style="display:grid;gap:16px">
+        ${sortedEps.length ? sortedEps.map(e => {
+          const isInline = S.inlineVidEp === e.episode_num;
+          const createdLabel = fmtEpDate(e.created_at || e.updated_at);
+          const hasUpdate = e.updated_at && e.updated_at !== e.created_at;
+          const updatedLabel = hasUpdate ? fmtEpDate(e.updated_at) : "";
+
+          return `
+            <div class="card" style="padding:20px;background:var(--muted);border-radius:14px;border:1px solid var(--line);display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+                <div style="max-width:620px">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <span class="pill ok">Episode ${e.episode_num}</span>
+                    <h4 style="font-size:16px;font-weight:700;margin:0">${esc(e.title)}</h4>
+                    <span class="pill sm">${e.status === 'completed' ? '✅ Completed' : 'Draft'}</span>
+                  </div>
+
+                  <p class="sub" style="font-size:13px;line-height:1.45;margin-bottom:6px">${esc(e.summary || 'Full 3D continuity episode.')}</p>
+
+                  ${e.unresolved_hook ? `
+                    <div style="font-size:12px;color:var(--brand-deep);margin-bottom:8px">
+                      ⚡ <b>Continuity Hook:</b> ${esc(e.unresolved_hook)}
+                    </div>
+                  ` : ''}
+
+                  <!-- Timestamp & Metadata Strip -->
+                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--dim);margin-top:4px">
+                    <span>📅 <b>Generated:</b> ${esc(createdLabel)}</span>
+                    ${updatedLabel ? `<span>🔄 <b>Updated:</b> ${esc(updatedLabel)}</span>` : ''}
+                    <span>⏱️ <b>Duration:</b> ${fmt(e.duration || 0)}</span>
+                    <span>🎬 <b>Scenes:</b> ${(e.script || []).length || 2}</span>
+                  </div>
+                </div>
+
+                <!-- Playback Actions (In-App Cinema & In-Frame Player) -->
+                ${e.video_file ? `
+                  <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
+                    <button type="button" class="btn sm primary" data-act="ser-watch-cinema" data-sid="${esc(s.id)}" data-ep="${e.episode_num}" data-var="master" style="display:flex;align-items:center;gap:5px">
+                      ${ic("play")} Watch 16:9
+                    </button>
+                    <button type="button" class="btn sm" data-act="ser-watch-cinema" data-sid="${esc(s.id)}" data-ep="${e.episode_num}" data-var="short" style="display:flex;align-items:center;gap:5px">
+                      ${ic("film")} Watch Short
+                    </button>
+                    <button type="button" class="btn sm" data-act="ser-toggle-ep-narrative" data-ep="${e.episode_num}" style="display:flex;align-items:center;gap:5px">
+                      🎧 ${S.narrativeEp === e.episode_num ? '▲ Close Narrative' : 'Director\'s Narrative'}
+                    </button>
+                    <button type="button" class="btn sm ghost" data-act="ser-toggle-inline" data-ep="${e.episode_num}" style="font-size:12px">
+                      ${isInline ? '▲ Hide Frame' : '▼ Play In-Frame'}
+                    </button>
+                    <button type="button" class="btn sm ghost" data-act="ser-delete-episode" data-sid="${esc(s.id)}" data-ep="${e.episode_num}" data-title="${esc(e.title)}" style="color:#ef4444;border-color:rgba(239,68,68,0.25);display:flex;align-items:center;gap:5px" title="Delete Episode ${e.episode_num}">
+                      ${ic("trash")} Delete
+                    </button>
+                  </div>
+                ` : `
+                  <div class="row" style="align-items:center;gap:8px">
+                    <span class="pill warn">Draft</span>
+                    <button type="button" class="btn sm ghost" data-act="ser-delete-episode" data-sid="${esc(s.id)}" data-ep="${e.episode_num}" data-title="${esc(e.title)}" style="color:#ef4444;border-color:rgba(239,68,68,0.25);display:flex;align-items:center;gap:5px" title="Delete Episode ${e.episode_num}">
+                      ${ic("trash")} Delete
+                    </button>
+                  </div>
+                `}
+              </div>
+
+              <!-- Director's Narrative Audio & Walkthrough Drawer -->
+              ${S.narrativeEp === e.episode_num ? `
+                <div style="margin-top:6px;padding:14px 16px;background:#18181b;border-radius:12px;color:#fff;border:1px solid #2e3248">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <span style="font-size:12.5px;font-weight:600">🎙️ Showrunner Narrative Audio Walkthrough (Episode ${e.episode_num})</span>
+                    <button type="button" class="btn sm ghost" data-act="ser-toggle-ep-narrative" data-ep="${e.episode_num}" style="color:#aaa;padding:2px 8px">${ic("x")}</button>
+                  </div>
+                  <audio src="/api/series/${encodeURIComponent(s.id)}/episodes/${e.episode_num}/narrative/audio" controls autoplay style="width:100%;height:36px;margin-bottom:10px"></audio>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:8px;font-size:11.5px">
+                    <div style="background:#222533;padding:10px;border-radius:8px">
+                      <b style="color:var(--brand-soft)">💡 Why Chosen:</b>
+                      <p style="margin:3px 0 0;color:#d1d5db;line-height:1.4">${esc(e.narrative_walkthrough?.context_motivation || 'Cooperative problem-solving and character bonding.')}</p>
+                    </div>
+                    <div style="background:#222533;padding:10px;border-radius:8px">
+                      <b style="color:#60a5fa">⏪ Previous Bridge:</b>
+                      <p style="margin:3px 0 0;color:#d1d5db;line-height:1.4">${esc(e.narrative_walkthrough?.previous_bridge || (e.episode_num > 1 ? 'Continuation from previous cliffhanger.' : 'Debut premiere episode establishing the 3D world.'))}</p>
+                    </div>
+                    <div style="background:#222533;padding:10px;border-radius:8px">
+                      <b style="color:#34d399">📖 Current Arc:</b>
+                      <p style="margin:3px 0 0;color:#d1d5db;line-height:1.4">${esc(e.narrative_walkthrough?.current_journey || e.summary || '')}</p>
+                    </div>
+                    <div style="background:#222533;padding:10px;border-radius:8px">
+                      <b style="color:#fbbf24">⏩ Next Teaser:</b>
+                      <p style="margin:3px 0 0;color:#d1d5db;line-height:1.4">${esc(e.narrative_walkthrough?.next_teaser || e.unresolved_hook || 'An unexpected discovery sets up the next episode.')}</p>
+                    </div>
+                  </div>
+                </div>
+              ` : ''}
+
+              <!-- Inline Video Player (Plays Right in Frame without Opening Popups) -->
+              ${isInline && e.video_file ? `
+                <div style="margin-top:6px;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line);box-shadow:0 8px 30px rgba(0,0,0,0.3)">
+                  <div style="display:flex;justify-content:space-between;align-items:center;background:#18181b;padding:8px 14px;font-size:12px;color:#fff">
+                    <span>📺 In-Frame Player: <b>${esc(e.title)} (16:9 Master)</b></span>
+                    <button type="button" class="btn sm ghost" data-act="ser-toggle-inline" data-ep="${e.episode_num}" style="color:#aaa;padding:2px 8px">${ic("x")}</button>
+                  </div>
+                  <video src="/api/series/${encodeURIComponent(s.id)}/episodes/${e.episode_num}/master" controls autoplay playsinline style="width:100%;max-height:460px;display:block;background:#000"></video>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join("") : '<p class="sub">No episodes completed yet. Pick an AI pitch to start Episode 1!</p>'}
+      </div>
+    `;
+  }
+
+  box.innerHTML = `
+    <div style="max-width:1080px;margin:0 auto;padding:24px 28px">
+      <!-- Show Header with PeakCut Design Tokens -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--line)">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <h2 style="font-size:22px;font-weight:700">${esc(s.title)}</h2>
+            <span class="pill primary">${esc(s.aspect_ratio || '16:9')}</span>
+            <span class="pill">${esc(s.genre || '3D Animation')}</span>
+            <span class="pill ok">${(s.default_language || 'en').toUpperCase()}</span>
+          </div>
+          <p class="sub" style="font-size:13px">${esc(s.visual_style || '')}</p>
+        </div>
+
+        <!-- Stylized PeakCut Controls -->
+        <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap">
+          <!-- Searchable Voiceover Language Dropdown -->
+          ${searchPicker("ser_lang_select", "🌐", "Voiceover language", SER_LANGUAGES, s.default_language || "hi", "Search language...")}
+
+          <!-- Searchable Series Switcher Dropdown -->
+          ${searchPicker("ser_switcher", "🎬", "Select series show", (S.seriesList || []).map(item => ({
+            v: item.id,
+            label: item.title,
+            sub: `${item.genre || '3D Animation'} · ${(item.episodes_count !== undefined ? item.episodes_count : (item.episodes || []).length) || 0} Ep`,
+            badge: "🎬"
+          })), s.id, "Search series shows...")}
+
+          <button type="button" class="btn sm ghost" data-act="ser-delete-show" data-sid="${esc(s.id)}" data-title="${esc(s.title)}" style="color:#ef4444;border-color:rgba(239,68,68,0.25);height:36px;display:flex;align-items:center;gap:6px" title="Delete this show">${ic("trash")} Delete</button>
+          <button class="btn sm primary" data-act="ser-new-show-btn" style="height:36px;display:flex;align-items:center;gap:6px">${ic("plus")} New 3D Series</button>
+        </div>
+      </div>
+
+      <!-- Studio Subtabs -->
+      <div class="utabs" style="margin-bottom:24px">
+        <button class="tabbtn ${S.serTab === 'pitches' ? 'on' : ''}" data-act="ser-tab" data-t="pitches">${ic("sparkle")} AI Pitches</button>
+        <button class="tabbtn ${S.serTab === 'script' ? 'on' : ''}" data-act="ser-tab" data-t="script">${ic("play")} Script Review & Approval</button>
+        <button class="tabbtn ${S.serTab === 'cast' ? 'on' : ''}" data-act="ser-tab" data-t="cast">${ic("users")} Character Vault (${charCount})</button>
+        <button class="tabbtn ${S.serTab === 'episodes' ? 'on' : ''}" data-act="ser-tab" data-t="episodes">${ic("film")} Episodes (${epCount})</button>
+      </div>
+
+      <!-- Tab Body -->
+      <div>${bodyHtml}</div>
+    </div>
+  `;
+}
+
 /* ============================================================ clip editor */
 function openClip(jid, cid) { D.jid = jid; D.cid = cid; D.sig = ""; drawClipDlg(true); $("#clipdlg").showModal(); }
 function drawClipDlg(full) {
@@ -6163,6 +7462,8 @@ function render() {
   drawShell(); drawJobs(); drawStream(); drawSelBar();
   if (S.view === "overview") drawOverview();
   if (S.view === "discover") drawDiscover();
+  if (S.view === "series") drawSeriesStudio();
+  if (S.view === "library" && $("#libOrganizer")) drawLibraryOrganizer();
   if (S.view === "overview") drawHomeLive();
   if ($("#clog")) drawLog();
   if (D.jid) drawClipDlg(false);
@@ -6646,6 +7947,444 @@ document.addEventListener("click", async e => {
     }
     if (a === "storcancel") { await send("/api/storage", {cancel: true}, "PUT"); toast("Kept the current folder", "ok"); return drawSettings(); }
     if (a === "appsetup") { S.setupOpen = d.p && S.setupOpen !== d.p ? d.p : ""; return drawSettings(); }
+    if (a === "ser-tab") { S.serTab = d.t; return drawSeriesStudio(); }
+    if (a === "dlg-close") { const md = $("#formdlg"); if (md && md.open) md.close(); return; }
+    if (a === "lib-view") {
+      S.libView = d.v;
+      if (d.v === "series") loadSeriesData(true);
+      drawLibraryOrganizer();
+      if (d.v !== "series") drawJobs();
+      return;
+    }
+    if (a === "toggle-series-folder") {
+      if (!S.openFolders) S.openFolders = {};
+      S.openFolders[d.sid] = S.openFolders[d.sid] === false ? true : false;
+      return drawLibraryOrganizer();
+    }
+    if (a === "open-in-studio") {
+      S.activeSeriesId = d.sid;
+      S.activeSeries = null;
+      S.serPitches = null;
+      S.draftScript = null;
+      S.serProdStatus = null;
+      await loadSeriesData(true);
+      return go("series");
+    }
+    if (a === "ser-delete-show") {
+      const sid = d.sid;
+      const title = d.title || "this series";
+      const ok = await ask(`Delete "${title}"?`, "This will permanently remove the series, its story continuity memory, and all rendered episode videos. This cannot be undone.", "Delete Series", true);
+      if (!ok) return;
+      try {
+        await api(`/api/series/${encodeURIComponent(sid)}`, {method: "DELETE"});
+        toast(`Deleted series "${title}"`, "ok");
+        if (S.activeSeriesId === sid) {
+          S.activeSeriesId = null;
+          S.activeSeries = null;
+          S.serPitches = null;
+          S.draftScript = null;
+          S.serProdStatus = null;
+        }
+        S.seriesList = null;
+        S.seriesOrganizer = null;
+        if (S.view === "series") {
+          await loadSeriesData(true);
+          if (S.seriesList && S.seriesList.length) {
+            S.activeSeriesId = S.seriesList[0].id;
+            await loadSeriesData(true);
+            return drawSeriesStudio();
+          } else {
+            return go("library");
+          }
+        }
+        return drawLibraryOrganizer();
+      } catch (err) {
+        toast(err.message || "Could not delete series", "bad");
+      }
+      return;
+    }
+    if (a === "ser-delete-episode") {
+      const sid = d.sid;
+      const epNum = parseInt(d.ep, 10);
+      const title = d.title || `Episode ${epNum}`;
+      const ok = await ask(`Delete Episode ${epNum}?`, `Are you sure you want to delete "${title}"? The rendered 16:9 master video, 9:16 short, and script will be removed.`, "Delete Episode", true);
+      if (!ok) return;
+      try {
+        await api(`/api/series/${encodeURIComponent(sid)}/episodes/${epNum}`, {method: "DELETE"});
+        toast(`Deleted Episode ${epNum}`, "ok");
+        S.seriesOrganizer = null;
+        await loadSeriesData(true);
+        if (S.view === "series") return drawSeriesStudio();
+        return drawLibraryOrganizer();
+      } catch (err) {
+        toast(err.message || "Could not delete episode", "bad");
+      }
+      return;
+    }
+    if (a === "ser-lib-page") {
+      S.serPage = +d.p;
+      return drawLibraryOrganizer();
+    }
+    if (a === "job-page") {
+      S.jobsPage = +d.p;
+      drawJobs();
+      const root = $("#jobs");
+      if (root) root.scrollIntoView({behavior: "smooth", block: "start"});
+      return;
+    }
+    if (a === "ser-new-show-btn") {
+      return openNewShowModal();
+    }
+    if (a === "ser-mkt-switch") {
+      return openNewShowModal(d.mkt);
+    }
+    if (a === "ser-use-trend") {
+      const tidx = parseInt(d.tidx, 10);
+      const t = S.currentMarketTrends?.[tidx];
+      if (t) {
+        S.selectedTrend = t;
+        if ($("#modal_ser_title")) $("#modal_ser_title").value = t.title;
+        if ($("#modal_ser_genre")) $("#modal_ser_genre").value = t.genre;
+        if ($("#modal_ser_lang")) $("#modal_ser_lang").value = t.default_language || "hi";
+        if ($("#modal_ser_style")) $("#modal_ser_style").value = t.visual_style;
+        if ($("#modal_ser_cast")) $("#modal_ser_cast").value = (t.character_seed || []).map(c => `${c.name} (${c.species || 'Character'})`).join(", ");
+        const col = $("#ser_blueprint_col");
+        if (col) {
+          col.style.borderColor = "var(--brand)";
+          setTimeout(() => { if (col) col.style.borderColor = "var(--line)"; }, 600);
+        }
+        toast(`Applied "${t.title}" Blueprint!`, "ok");
+      }
+      return;
+    }
+    if (a === "ser-style-preset") {
+      if ($("#modal_ser_style") && d.style) {
+        $("#modal_ser_style").value = d.style;
+        toast("Applied 3D style preset", "ok");
+      }
+      return;
+    }
+    if (a === "ser-ai-title") {
+      const cat = $("#modal_ser_genre")?.value || "3D Adventure";
+      const castLead = ($("#modal_ser_cast")?.value || "").split(",")[0]?.split("(")[0]?.trim() || "Friends";
+      const pool = [
+        `Tales of ${castLead}: The Golden Key Mystery`,
+        `${castLead} & The Enchanted Grove`,
+        `The Secret Adventures of ${castLead}`,
+        `Wonder Tales: The Quest of ${castLead}`
+      ];
+      const choice = pool[Math.floor(Math.random() * pool.length)];
+      if ($("#modal_ser_title")) $("#modal_ser_title").value = choice;
+      toast(`AI suggested: "${choice}"`, "ok");
+      return;
+    }
+    if (a === "ser-quick-lang") {
+      const lang = d.lang;
+      await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}`, {default_language: lang}, "PUT");
+      toast(`Switched voiceover language to ${lang.toUpperCase()}`, "ok");
+      S.serPitches = null; S.draftScript = null;
+      await loadSeriesData(true);
+      return drawSeriesStudio();
+    }
+    if (a === "ser-modal-create-show") {
+      const title = $("#modal_ser_title")?.value?.trim();
+      if (!title) return toast("Show title is required", "warn");
+      const genre = $("#modal_ser_genre")?.value?.trim() || "3D Cartoon Adventure";
+      const lang = $("#modal_ser_lang")?.value || "en";
+      const style = $("#modal_ser_style")?.value?.trim() || "high-gloss 3D Pixar toy CGI, octane render, soft volumetric lighting, vibrant primary colors, 8k";
+      const ratio = $("#modal_ser_ratio")?.value || "16:9";
+
+      // Seed initial characters
+      let chars = [];
+      if (S.selectedTrend && S.selectedTrend.character_seed && S.selectedTrend.title === title) {
+        chars = S.selectedTrend.character_seed;
+      } else {
+        const castRaw = $("#modal_ser_cast")?.value?.trim() || "";
+        const parts = castRaw.split(/[,;\n]+/).filter(Boolean);
+        for (const p of parts) {
+          const m = p.match(/^([^(]+)(?:\(([^)]+)\))?/);
+          const name = m ? m[1].trim() : p.trim();
+          const species = m && m[2] ? m[2].trim() : "Character";
+          chars.push({
+            name,
+            species,
+            visual_anchor: `cute 3d cartoon ${species}, vibrant colors, expressive large eyes`,
+            personality: "Playful, adventurous and friendly",
+            voice_id: lang === "hi" ? "hi-IN-MadhurNeural" : "en-US-ChristopherNeural"
+          });
+        }
+      }
+
+      $("#formdlg").close();
+      toast(`Creating 3D Series "${title}" & generating Character Vault...`, "ok");
+      const res = await send("/api/series", {
+        title,
+        genre,
+        default_language: lang,
+        visual_style: style,
+        aspect_ratio: ratio,
+        characters: chars
+      });
+      S.activeSeriesId = res.id;
+      S.activeSeries = res;
+      S.seriesOrganizer = null;
+      S.serTab = "pitches";
+      S.avatarVer = Date.now();
+      await loadSeriesData(true);
+      toast(`Created 3D Series "${title}" with ${chars.length} characters in Vault!`, "ok");
+      if (S.view === "library") drawLibraryOrganizer();
+      else drawSeriesStudio();
+      return;
+    }
+    if (a === "ser-add-char-dlg") {
+      return openNewCharModal();
+    }
+    if (a === "ser-modal-save-char") {
+      const name = $("#modal_char_name")?.value?.trim();
+      if (!name) return toast("Character name is required", "warn");
+      const species = $("#modal_char_species")?.value?.trim() || "Character";
+      const voice_id = $("#modal_char_voice")?.value || "en-US-ChristopherNeural";
+      const visual_anchor = $("#modal_char_visual")?.value?.trim() || "cute 3d cartoon character, friendly smile";
+      const personality = $("#modal_char_pers")?.value?.trim() || "";
+      $("#formdlg").close();
+      toast("Saving character & generating 3D portrait...", "ok");
+      await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/characters`, {name, species, voice_id, visual_anchor, personality});
+      S.avatarVer = Date.now();
+      await loadSeriesData(true);
+      return drawSeriesStudio();
+    }
+    if (a === "ser-char-preview") {
+      return openCharPreviewModal(d.cid);
+    }
+    if (a === "ser-watch-cinema") {
+      return openEpisodePlayerModal(d.sid || S.activeSeriesId, d.ep, d.var || "master");
+    }
+    if (a === "ser-cinema-switch") {
+      return openEpisodePlayerModal(d.sid, d.ep, d.var);
+    }
+    if (a === "ser-ep-ai-title") {
+      const f = $("#ep_dlg_title");
+      if (!f) return;
+      const pool = [
+        "The Secret of the Golden Meadow",
+        "A Starry Night Over the Pasture",
+        "The Great Whispering Wind Mystery",
+        "The Lost Melody of the Woodland",
+        "The Brave Friendship Adventure"
+      ];
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      f.value = pick;
+      toast(`AI suggested: "${pick}"`, "ok");
+      return;
+    }
+    if (a === "ser-ep-save") {
+      const sid = d.sid || S.activeSeriesId;
+      const epNum = +d.ep;
+      const title = $("#ep_dlg_title")?.value?.trim();
+      const summary = $("#ep_dlg_synopsis")?.value?.trim();
+      try {
+        await api(`/api/series/${encodeURIComponent(sid)}/episodes/${epNum}`, {
+          method: "PATCH",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({title, summary})
+        });
+        toast("Episode details updated!", "ok");
+        await loadSeriesData(true);
+        if (S.view === "series") drawSeriesStudio();
+        else if (S.view === "library") drawLibraryOrganizer();
+      } catch (err) { toast(err.message, "bad"); }
+      return;
+    }
+    if (a === "ser-style-toggle-info") {
+      const s = S.activeSeries;
+      toast(`3D DNA: ${s?.visual_style || 'Pixar Toy 3D CGI'}`, "ok");
+      return;
+    }
+    if (a === "ser-toggle-inline") {
+      const epNum = +d.ep;
+      S.inlineVidEp = S.inlineVidEp === epNum ? null : epNum;
+      return drawSeriesStudio();
+    }
+    if (a === "ser-sort-eps") {
+      S.epSortOrder = d.order;
+      return drawSeriesStudio();
+    }
+    if (a === "ser-listen-narrative-draft") {
+      const nw = S.draftScript?.narrative_walkthrough;
+      const text = nw?.full_spoken_script || `${S.draftScript?.title}. ${S.draftScript?.synopsis}`;
+      if (!text) return toast("No narrative script available", "warn");
+      b.disabled = true;
+      const origText = b.textContent;
+      b.textContent = "🎙️ Synthesizing Voice...";
+      try {
+        const res = await fetch(`/api/series/${encodeURIComponent(S.activeSeriesId)}/script/narrative/audio`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({text})
+        });
+        if (!res.ok) throw new Error("Could not synthesize narrative audio");
+        const blob = await res.blob();
+        const audUrl = URL.createObjectURL(blob);
+        const playerBox = $("#draft_narrative_player_box");
+        const audEl = $("#draft_narrative_audio");
+        if (playerBox && audEl) {
+          playerBox.style.display = "block";
+          audEl.src = audUrl;
+          audEl.play().catch(() => {});
+          toast("Playing Director's Spoken Walkthrough!", "ok");
+        }
+      } catch (err) {
+        toast(err.message, "bad");
+      } finally {
+        b.disabled = false;
+        b.textContent = origText;
+      }
+      return;
+    }
+    if (a === "ser-toggle-ep-narrative") {
+      const epNum = +d.ep;
+      S.narrativeEp = S.narrativeEp === epNum ? null : epNum;
+      return drawSeriesStudio();
+    }
+    if (a === "ser-char-regen") {
+      toast("Re-rendering 3D look with procedural AI engine...", "ok");
+      try {
+        const res = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/characters/${encodeURIComponent(d.cid)}/avatar`, {});
+        toast("3D look updated!", "ok");
+        S.avatarVer = Date.now();
+        const mImg = $("#char_modal_img");
+        if (mImg) mImg.src = res.avatar_url;
+        await loadSeriesData(true);
+        drawSeriesStudio();
+      } catch (err) { toast(err.message, "bad"); }
+      return;
+    }
+    if (a === "ser-fetch-pitches") {
+      b.disabled = true; b.textContent = "Analyzing prior episodes...";
+      try {
+        S.serPitches = await api(`/api/series/${encodeURIComponent(S.activeSeriesId)}/pitches`);
+      } catch (err) { toast(err.message, "bad"); }
+      finally { b.disabled = false; }
+      return drawSeriesStudio();
+    }
+    if (a === "ser-set-scenes") {
+      S.serTargetScenes = +d.scenes;
+      return drawSeriesStudio();
+    }
+    if (a === "ser-set-dur") {
+      S.serSceneDur = +d.dur;
+      return drawSeriesStudio();
+    }
+    if (a === "ser-pick-pitch") {
+      const idx = +d.idx;
+      const pitch = (S.serPitches || [])[idx];
+      if (!pitch) return;
+      const targetScenes = S.serTargetScenes || 12;
+      const sceneDur = S.serSceneDur || 60;
+      b.disabled = true; b.textContent = "Writing script...";
+      try {
+        S.draftScript = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/script`, {
+          pitch,
+          target_scenes: targetScenes,
+          scene_duration: sceneDur
+        });
+        S.serTab = "script";
+        S.serProdStatus = null;
+      } catch (err) { toast(err.message, "bad"); }
+      finally { b.disabled = false; }
+      return drawSeriesStudio();
+    }
+    if (a === "ser-custom-script") {
+      const promptText = $("#ser_custom_prompt")?.value?.trim();
+      if (!promptText) return toast("Type a prompt or seed idea first.", "warn");
+      const targetScenes = S.serTargetScenes || 12;
+      const sceneDur = S.serSceneDur || 60;
+      b.disabled = true; b.textContent = "Writing script...";
+      try {
+        S.draftScript = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/script`, {
+          pitch: promptText,
+          target_scenes: targetScenes,
+          scene_duration: sceneDur
+        });
+        S.serTab = "script";
+        S.serProdStatus = null;
+      } catch (err) { toast(err.message, "bad"); }
+      finally { b.disabled = false; }
+      return drawSeriesStudio();
+    }
+    if (a === "ser-add-scene") {
+      if (!S.draftScript) S.draftScript = {title: "New Episode", synopsis: "", scenes: []};
+      if (!S.draftScript.scenes) S.draftScript.scenes = [];
+      const n = S.draftScript.scenes.length + 1;
+      const chars = (S.activeSeries?.characters || []);
+      const defSpk = chars.length ? chars[(n - 1) % chars.length].name : "Narrator";
+      const defVoice = chars.length ? (chars[(n - 1) % chars.length].voice_id || "en-US-ChristopherNeural") : "en-US-ChristopherNeural";
+      const defStyle = S.activeSeries?.visual_style || "high-gloss 3D Pixar toy CGI, octane render, soft volumetric lighting, vibrant primary colors, 8k";
+      const sceneDur = S.serSceneDur || 60;
+      S.draftScript.scenes.push({
+        scene_num: n,
+        duration_sec: sceneDur,
+        setting: `Scene ${n} Setting`,
+        characters: chars.map(c => c.name),
+        speaker: defSpk,
+        voice_id: defVoice,
+        camera_motion: "dolly_in",
+        dialogue: "Type detailed dialogue and storytelling narrative for this scene...",
+        visual_prompt: `Close-up 3D render of ${defSpk} in vibrant 3D animated environment, rich depth of field, ${defStyle}`
+      });
+      toast(`Added Scene ${n} (${sceneDur}s)!`, "ok");
+      return drawSeriesStudio();
+    }
+    if (a === "ser-del-scene") {
+      if (!S.draftScript || !S.draftScript.scenes) return;
+      const idx = +d.idx;
+      if (S.draftScript.scenes.length <= 1) return toast("An episode must have at least one scene.", "warn");
+      S.draftScript.scenes.splice(idx, 1);
+      S.draftScript.scenes.forEach((sc, i) => { sc.scene_num = i + 1; });
+      toast("Scene deleted", "ok");
+      return drawSeriesStudio();
+    }
+    if (a === "ser-regen-script") {
+      const targetScenes = S.serTargetScenes || (S.draftScript?.scenes?.length || 12);
+      const sceneDur = S.serSceneDur || 60;
+      b.disabled = true; b.textContent = "Writing script...";
+      try {
+        const premise = S.draftScript?.title || S.draftScript?.synopsis || "Exciting 3D animated adventure";
+        S.draftScript = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/script`, {
+          pitch: premise,
+          target_scenes: targetScenes,
+          scene_duration: sceneDur
+        });
+        toast(`Generated ${S.draftScript?.scenes?.length || 0} scenes (~${Math.round((targetScenes * sceneDur) / 60)}m)!`, "ok");
+      } catch (err) { toast(err.message, "bad"); }
+      finally { b.disabled = false; }
+      return drawSeriesStudio();
+    }
+    if (a === "ser-approve-prod") {
+      const epNum = (S.activeSeries?.episodes || []).length + 1;
+      b.disabled = true; b.textContent = "Launching production...";
+      try {
+        await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/episodes/${epNum}/approve`, {script: S.draftScript});
+        S.serProdStatus = {status: "rendering", progress: 10, message: "Production started..."};
+        drawSeriesStudio();
+        
+        if (_serPollTimer) clearInterval(_serPollTimer);
+        _serPollTimer = setInterval(async () => {
+          try {
+            const st = await api(`/api/series/${encodeURIComponent(S.activeSeriesId)}/episodes/${epNum}/status`);
+            S.serProdStatus = st;
+            if (st.status === "completed" || st.status === "failed") {
+              clearInterval(_serPollTimer);
+              _serPollTimer = null;
+              await loadSeriesData(true);
+            }
+            drawSeriesStudio();
+          } catch {}
+        }, 2500);
+      } catch (err) { toast(err.message, "bad"); b.disabled = false; }
+      return;
+    }
+
     if (a === "copytext") { await navigator.clipboard.writeText(d.t); return toast("Copied", "ok"); }
     if (a === "appsave") {
       await send("/api/apps", {platform: d.p, client_id: $("#app_id").value, client_secret: $("#app_secret").value, config_id: $("#app_config")?.value ?? null, open: $("#app_open")?.checked ?? null}, "PUT");

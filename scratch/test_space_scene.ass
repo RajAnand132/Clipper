@@ -1,0 +1,26 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Cap,Poppins ExtraBold,84,&H00FFFFFF,&H00FFFFFF,&H00000000,&H70000000,0,0,0,0,100,100,0,0,1,7,0,5,0,0,0,1
+Style: Hook,Poppins ExtraBold,96,&H0014100E,&H0014100E,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
+Style: Note,Poppins ExtraBold,46,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,4,0,5,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 2,0:00:00.20,0:00:00.60,Cap,,0,0,0,,{\an5\pos(844,965)\fs84\c&H00F0FF&\fscx94\fscy94\t(0,90,\fscx112\fscy112)\t(90,200,\fscx107\fscy107)}LOOK
+Dialogue: 1,0:00:00.60,0:00:01.20,Cap,,0,0,0,,{\an5\pos(844,965)\fs84\c&HFFFFFF&\fscx107\fscy107\t(0,90,\fscx100\fscy100)}LOOK
+Dialogue: 1,0:00:00.20,0:00:00.60,Cap,,0,0,0,,{\an5\pos(972,965)\fs84\c&HFFFFFF&}AT
+Dialogue: 2,0:00:00.60,0:00:00.90,Cap,,0,0,0,,{\an5\pos(972,965)\fs84\c&H00F0FF&\fscx94\fscy94\t(0,90,\fscx112\fscy112)\t(90,200,\fscx107\fscy107)}AT
+Dialogue: 1,0:00:00.90,0:00:01.20,Cap,,0,0,0,,{\an5\pos(972,965)\fs84\c&HFFFFFF&\fscx107\fscy107\t(0,90,\fscx100\fscy100)}AT
+Dialogue: 1,0:00:00.20,0:00:00.90,Cap,,0,0,0,,{\an5\pos(1088,965)\fs84\c&HFFFFFF&}THIS
+Dialogue: 2,0:00:00.90,0:00:01.20,Cap,,0,0,0,,{\an5\pos(1088,965)\fs84\c&H00F0FF&\fscx94\fscy94\t(0,90,\fscx112\fscy112)\t(90,200,\fscx107\fscy107)}THIS
+Dialogue: 2,0:00:01.20,0:00:01.80,Cap,,0,0,0,,{\an5\pos(863,965)\fs84\c&H00F0FF&\fscx94\fscy94\t(0,90,\fscx109\fscy109)\t(90,200,\fscx104\fscy104)}ASTEROID
+Dialogue: 1,0:00:01.80,0:00:02.75,Cap,,0,0,0,,{\an5\pos(863,965)\fs84\c&HFFFFFF&\fscx104\fscy104\t(0,90,\fscx100\fscy100)}ASTEROID
+Dialogue: 1,0:00:01.20,0:00:01.80,Cap,,0,0,0,,{\an5\pos(1094,965)\fs84\c&HFFFFFF&}ORBIT!
+Dialogue: 2,0:00:01.80,0:00:02.75,Cap,,0,0,0,,{\an5\pos(1094,965)\fs84\c&H00F0FF&\fscx94\fscy94\t(0,90,\fscx112\fscy112)\t(90,200,\fscx107\fscy107)}ORBIT!

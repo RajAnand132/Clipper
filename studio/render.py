@@ -365,9 +365,11 @@ def _placed(groups, places, start):
 
 
 def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, note="", info=None, show_hook=True, hook_look=None,
-              script="", places=None) -> str:
+              script="", places=None, play_res: tuple[int, int] | None = None) -> str:
     """style_name: a template's caption settings (dict), or one of the old style names. script: "ur" or "hi" when the
-    captions are in Urdu or Hindi script. places: where the captions go over time, when the layout changes."""
+    captions are in Urdu or Hindi script. places: where the captions go over time, when the layout changes.
+    play_res: optional (res_w, res_h) canvas size (defaults to W, H)."""
+    res_w, res_h = play_res if play_res else (W, H)
     st = _cap_style(style_name)
     if script in SCRIPT_FONTS:
         name, _f, grow = SCRIPT_FONTS[script]
@@ -379,8 +381,8 @@ def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, not
     strong = {_key(h) for h in highlight if _key(h)}
     head = f"""[Script Info]
 ScriptType: v4.00+
-PlayResX: {W}
-PlayResY: {H}
+PlayResX: {res_w}
+PlayResY: {res_h}
 WrapStyle: 2
 ScaledBorderAndShadow: yes
 
@@ -401,7 +403,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if nf.width(note, ns) > 940:
             ns = max(26, int(ns * 940 / nf.width(note, ns)))
         ny = ((info or {}).get("bottom") or hook_y) + 50
-        ev.append(f"Dialogue: 4,{_ts(0)},{_ts(dur)},Note,,0,0,0,,{{\\an5\\pos({W // 2},{ny:.0f})\\fs{ns}}}{note}")
+        ev.append(f"Dialogue: 4,{_ts(0)},{_ts(dur)},Note,,0,0,0,,{{\\an5\\pos({res_w // 2},{ny:.0f})\\fs{ns}}}{note}")
     f = _Font.get(st["font"])
     inside = [dict(w, w=_clean(w["w"])) for w in words if w["s"] >= start - 0.05 and w["s"] < end]
     inside = sorted((w for w in inside if w["w"]), key=lambda w: w["s"])
@@ -425,7 +427,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             wide = f.width(" ".join(texts), size)
             if wide > CAP_MAX_W:
                 size = max(36, int(size * CAP_MAX_W / wide))
-            pos = f"\\an5\\pos({W // 2},{cap_y - f.cap_shift(size):.0f})\\fs{size}"
+            pos = f"\\an5\\pos({res_w // 2},{cap_y - f.cap_shift(size):.0f})\\fs{size}"
             base = [st["strong"] if _key(x["w"]) in strong else st["base"] for x in g]
 
             def line(on):
@@ -462,7 +464,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             # they are not placed one by one. The line is drawn whole and centred, in a font the system has for it.
             line = " ".join(texts)
             fs = max(44, min(int(st["size"] * 0.7), int(1500 / max(1, len(line)) * 1.6)))
-            ev.append(f"Dialogue: 1,{_ts(g_start)},{_ts(g_end)},Cap,,60,60,0,,{{\\an5\\pos({W // 2},{cap_y:.0f})\\q0\\fs{fs}}}{line}")
+            ev.append(f"Dialogue: 1,{_ts(g_start)},{_ts(g_end)},Cap,,60,60,0,,{{\\an5\\pos({res_w // 2},{cap_y:.0f})\\q0\\fs{fs}}}{line}")
             continue
         size = st["size"]
         gap = f.width("n n", size) - 2 * f.width("n", size) + (2 * st["outline"] + 6) * size / st["size"] + (size * 0.2 if st["anim"] == "box" else 0)   # a space, plus room for both outlines
@@ -472,7 +474,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             gap = f.width("n n", size) - 2 * f.width("n", size) + (2 * st["outline"] + 6) * size / st["size"] + (size * 0.2 if st["anim"] == "box" else 0)   # a space, plus room for both outlines
             total = sum(f.width(t, size) for t in texts) + gap * (len(texts) - 1)
         cy = cap_y - f.cap_shift(size)
-        x = (W - total) / 2
+        x = (res_w - total) / 2
         if st["bg"]:                                       # a rounded box behind the whole line
             ch = f.cap * size / (f.asc + f.desc)
             px, py = size * 0.28, ch * 0.55

@@ -2570,6 +2570,285 @@ def admin_delete_user(request: Request, uid: str, body: dict = Body(...)):
     return {"ok": True}
 
 
+# ---------------------------------------------------------------- AI Series & Story Studio (Plan 05)
+from . import memory, storyteller, series as series_engine, tts, visuals
+
+
+@app.get("/api/series/voices")
+def _get_series_voices(lang: str = None):
+    return {
+        "languages": tts.SUPPORTED_LANGUAGES,
+        "voices": tts.list_voices(lang)
+    }
+
+
+@app.get("/api/series/organizer")
+def _get_series_organizer():
+    all_series = memory.list_series()
+    folders = []
+    for s_meta in all_series:
+        sid = s_meta["id"]
+        full = memory.get_series(sid)
+        if not full:
+            continue
+        eps = []
+        for ep in full.get("episodes", []):
+            ep_num = ep.get("episode_num", 1)
+            master_p = config.DATA_DIR / "series" / sid / "episodes" / f"ep_{ep_num:03d}" / f"episode_{ep_num:03d}_master.mp4"
+            short_p = config.DATA_DIR / "series" / sid / "episodes" / f"ep_{ep_num:03d}" / f"episode_{ep_num:03d}_short.mp4"
+            eps.append({
+                "episode_num": ep_num,
+                "title": ep.get("title", f"Episode {ep_num}"),
+                "status": ep.get("status", "draft"),
+                "duration": ep.get("duration", 0),
+                "has_master": master_p.is_file(),
+                "has_short": short_p.is_file(),
+                "master_url": f"/api/series/{sid}/episodes/{ep_num}/master" if master_p.is_file() else None,
+                "short_url": f"/api/series/{sid}/episodes/{ep_num}/short" if short_p.is_file() else None,
+                "created_at": ep.get("created_at", "")
+            })
+        folders.append({
+            "id": sid,
+            "title": full.get("title", sid),
+            "genre": full.get("genre", "3D Animation"),
+            "default_language": full.get("default_language", "en"),
+            "episodes_count": len(eps),
+            "episodes": eps
+        })
+    return {"folders": folders}
+
+
+@app.get("/api/series")
+def _list_series():
+    return memory.list_series()
+
+
+@app.get("/api/series/trends")
+def _get_series_trends(country: str = "IN"):
+    trends = storyteller.get_market_trends(country=country)
+    return {"country": country.strip().upper(), "trends": trends}
+
+
+@app.post("/api/series")
+def _create_series(body: dict = Body(...)):
+    title = str(body.get("title") or "").strip()
+    if not title:
+        raise HTTPException(400, "Series title is required")
+    s = memory.create_series(
+        title=title,
+        genre=str(body.get("genre") or "3D Cartoon Adventure"),
+        visual_style=str(body.get("visual_style") or "high-gloss 3D Pixar toy CGI, octane render, soft volumetric lighting, vibrant primary colors, 8k"),
+        aspect_ratio=str(body.get("aspect_ratio") or "16:9"),
+        default_language=str(body.get("default_language") or "en"),
+        characters=body.get("characters") or []
+    )
+    # Generate 3D avatars for initial seeded characters immediately
+    for c in s.get("characters", []):
+        try:
+            visuals.generate_character_avatar(s["id"], c, s.get("visual_style", ""))
+        except Exception as e:
+            log.warning("Initial character avatar error: %s", e)
+    return s
+
+
+@app.put("/api/series/{sid}")
+def _update_series(sid: str, body: dict = Body(...)):
+    res = memory.update_series(sid, body)
+    if not res:
+        raise HTTPException(404, "Series not found")
+    return res
+
+
+@app.get("/api/series/{sid}")
+def _get_series(sid: str):
+    s = memory.get_series(sid)
+    if not s:
+        raise HTTPException(404, "Series not found")
+    return s
+
+
+@app.delete("/api/series/{sid}")
+def _delete_series(sid: str):
+    ok = memory.delete_series(sid)
+    if not ok:
+        raise HTTPException(404, "Series not found")
+    return {"ok": True, "series_id": sid}
+
+
+@app.post("/api/series/{sid}/characters")
+def _add_series_character(sid: str, body: dict = Body(...)):
+    char = memory.add_character(sid, body)
+    if not char:
+        raise HTTPException(404, "Series not found")
+    # Generate 3D avatar preview asynchronously or inline
+    try:
+        s = memory.get_series(sid)
+        style = s.get("visual_style", "") if s else ""
+        visuals.generate_character_avatar(sid, char, style)
+    except Exception as e:
+        log.warning("Initial character avatar generation error: %s", e)
+    return char
+
+
+@app.get("/api/series/{sid}/characters/{cid}/avatar.jpg")
+def _get_character_avatar(sid: str, cid: str):
+    img_path = config.DATA_DIR / "series" / sid / "characters" / f"{cid}.jpg"
+    if not img_path.is_file():
+        s = memory.get_series(sid)
+        chars = s.get("characters", []) if s else []
+        char = next((c for c in chars if c.get("id") == cid), None)
+        if char:
+            visuals.generate_character_avatar(sid, char, s.get("visual_style", ""))
+    if img_path.is_file():
+        return FileResponse(img_path, media_type="image/jpeg", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+    return FileResponse(WEB / "brand" / "favicon.svg", media_type="image/svg+xml")
+
+
+@app.post("/api/series/{sid}/characters/{cid}/avatar")
+def _regenerate_character_avatar(sid: str, cid: str):
+    s = memory.get_series(sid)
+    if not s:
+        raise HTTPException(404, "Series not found")
+    chars = s.get("characters", [])
+    char = next((c for c in chars if c.get("id") == cid), None)
+    if not char:
+        raise HTTPException(404, "Character not found")
+    avatar = visuals.generate_character_avatar(sid, char, s.get("visual_style", ""))
+    return {
+        "avatar_url": f"/api/series/{sid}/characters/{cid}/avatar.jpg?t={int(time.time())}"
+    }
+
+
+@app.get("/api/series/{sid}/episodes/{ep_num}/master")
+def _stream_master_episode(sid: str, ep_num: int, download: int = 0):
+    p = config.DATA_DIR / "series" / sid / "episodes" / f"ep_{ep_num:03d}" / f"episode_{ep_num:03d}_master.mp4"
+    if not p.is_file():
+        raise HTTPException(404, "Master episode video not found")
+    headers = {"Accept-Ranges": "bytes", "Cache-Control": "private, max-age=3600"}
+    if download:
+        return FileResponse(p, media_type="video/mp4", filename=p.name, headers=headers)
+    return FileResponse(p, media_type="video/mp4", content_disposition_type="inline", headers=headers)
+
+
+@app.get("/api/series/{sid}/episodes/{ep_num}/short")
+def _stream_teaser_short(sid: str, ep_num: int, download: int = 0):
+    p = config.DATA_DIR / "series" / sid / "episodes" / f"ep_{ep_num:03d}" / f"episode_{ep_num:03d}_short.mp4"
+    if not p.is_file():
+        raise HTTPException(404, "Teaser short video not found")
+    headers = {"Accept-Ranges": "bytes", "Cache-Control": "private, max-age=3600"}
+    if download:
+        return FileResponse(p, media_type="video/mp4", filename=p.name, headers=headers)
+    return FileResponse(p, media_type="video/mp4", content_disposition_type="inline", headers=headers)
+
+
+@app.get("/api/series/{sid}/episodes/{ep_num}/narrative")
+def _get_episode_narrative(sid: str, ep_num: int):
+    narrative = storyteller.get_or_create_episode_narrative(sid, ep_num)
+    if not narrative:
+        raise HTTPException(404, "Episode narrative not found")
+    return narrative
+
+
+@app.get("/api/series/{sid}/episodes/{ep_num}/narrative/audio")
+def _stream_episode_narrative_audio(sid: str, ep_num: int):
+    s = memory.get_series(sid)
+    if not s:
+        raise HTTPException(404, "Series not found")
+    lang = (s.get("default_language") or "en").lower()
+    voice_id = tts.default_voice_for_lang(lang)
+
+    ep_dir = config.DATA_DIR / "series" / sid / "episodes" / f"ep_{ep_num:03d}"
+    ep_dir.mkdir(parents=True, exist_ok=True)
+    audio_path = ep_dir / f"episode_{ep_num:03d}_narrative.mp3"
+
+    if not audio_path.is_file():
+        narrative = storyteller.get_or_create_episode_narrative(sid, ep_num)
+        text = narrative.get("full_spoken_script") if narrative else ""
+        if not text:
+            raise HTTPException(404, "Narrative text not found")
+        tts.synthesize_narrative_audio(text, voice_id, audio_path)
+
+    if not audio_path.is_file():
+        raise HTTPException(500, "Could not synthesize narrative audio")
+
+    headers = {"Accept-Ranges": "bytes", "Cache-Control": "private, max-age=3600"}
+    return FileResponse(audio_path, media_type="audio/mpeg", content_disposition_type="inline", headers=headers)
+
+
+@app.post("/api/series/{sid}/script/narrative/audio")
+def _synthesize_draft_narrative_audio(sid: str, body: dict = Body(...)):
+    s = memory.get_series(sid)
+    lang = (s.get("default_language") or "en").lower() if s else "en"
+    text = str(body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(400, "Narrative text is required")
+    voice_id = str(body.get("voice_id") or tts.default_voice_for_lang(lang))
+
+    temp_dir = config.DATA_DIR / "series" / sid / "temp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    audio_path = temp_dir / f"draft_narrative_{int(time.time())}.mp3"
+
+    out = tts.synthesize_narrative_audio(text, voice_id, audio_path)
+    if not out or not out.is_file():
+        raise HTTPException(500, "Failed to synthesize draft narrative audio")
+
+    headers = {"Accept-Ranges": "bytes", "Cache-Control": "no-cache"}
+    return FileResponse(out, media_type="audio/mpeg", content_disposition_type="inline", headers=headers)
+
+
+@app.get("/api/series/{sid}/pitches")
+def _get_series_pitches(sid: str):
+    return storyteller.pitch_next_episodes(sid)
+
+
+@app.post("/api/series/{sid}/script")
+def _generate_series_script(sid: str, body: dict = Body(...)):
+    pitch = body.get("pitch")
+    if not pitch:
+        raise HTTPException(400, "Pitch or story premise is required")
+    target_dur_min = body.get("target_duration_min")
+    scene_duration = int(body.get("scene_duration") or 60)
+    if target_dur_min:
+        target_scenes = max(3, min(25, int(round(float(target_dur_min) * 60 / scene_duration))))
+    else:
+        target_scenes = int(body.get("target_scenes") or 12)
+    return storyteller.generate_episode_script(
+        sid, pitch,
+        target_scenes=target_scenes,
+        scene_duration=scene_duration,
+        target_duration_min=float(target_dur_min) if target_dur_min else None
+    )
+
+
+@app.post("/api/series/{sid}/episodes/{ep_num}/approve")
+def _approve_series_episode(sid: str, ep_num: int, body: dict = Body(...)):
+    script = body.get("script")
+    if not script:
+        raise HTTPException(400, "Script data is required for approval")
+    return series_engine.start_episode_production(sid, ep_num, script)
+
+
+@app.get("/api/series/{sid}/episodes/{ep_num}/status")
+def _get_episode_status(sid: str, ep_num: int):
+    return series_engine.get_production_status(sid, ep_num)
+
+
+@app.patch("/api/series/{sid}/episodes/{ep_num}")
+def _patch_series_episode(sid: str, ep_num: int, body: dict = Body(...)):
+    res = memory.update_episode(sid, ep_num, body)
+    if not res:
+        raise HTTPException(404, "Episode not found")
+    return res
+
+
+@app.delete("/api/series/{sid}/episodes/{ep_num}")
+def _delete_series_episode(sid: str, ep_num: int):
+    ok = memory.delete_episode(sid, ep_num)
+    if not ok:
+        raise HTTPException(404, "Episode not found")
+    return {"ok": True, "series_id": sid, "episode_num": ep_num}
+
+
 def _wait_for_port(seconds: int = 40):
     """After an update the old PeakCut is still closing: wait until its address is free."""
     import socket
