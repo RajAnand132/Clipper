@@ -101,7 +101,8 @@ def create_series(
     default_language: str = "en",
     characters: list[dict] | None = None,
     series_id: str | None = None,
-    format: str = ""
+    format: str = "",
+    brief: str = ""
 ) -> dict:
     """Creates a new ongoing series workspace."""
     sid = series_id or _slugify(title)
@@ -130,6 +131,7 @@ def create_series(
         "default_language": default_language.strip().lower() or "en",
         "aspect_ratio": aspect_ratio if aspect_ratio in ("16:9", "9:16") else "16:9",
         "characters": norm_chars,
+        "brief": (brief or "").strip()[:8000],   # the creator's own idea, story and characters, followed by every episode
         "episodes": [],
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -143,7 +145,7 @@ def update_series(series_id: str, updates: dict) -> dict | None:
     series = get_series(series_id)
     if not series:
         return None
-    allowed = ["title", "genre", "visual_style", "default_language", "aspect_ratio", "format", "format_overrides"]
+    allowed = ["title", "genre", "visual_style", "default_language", "aspect_ratio", "format", "format_overrides", "brief"]
     for k in allowed:
         if k in updates:
             series[k] = updates[k]
@@ -180,6 +182,9 @@ def add_character(series_id: str, character: dict) -> dict | None:
         "personality": character.get("personality", ""),
         "avatar_url": f"/api/series/{series_id}/characters/{char_id}/avatar.jpg"
     }
+    for extra in ("voice_rate", "voice_pitch", "toon", "model_3d", "look_seed", "look_history"):   # voice casting and 3D look
+        if character.get(extra) is not None:
+            char_record[extra] = character[extra]
     chars.append(char_record)
     series["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     _save_json(SERIES_DIR / series_id / "series.json", series)
@@ -217,7 +222,11 @@ def add_episode(series_id: str, episode_data: dict) -> dict | None:
         "created_at": episode_data.get("created_at") or now_iso,
         "updated_at": now_iso
     }
-    
+    # extras kept when given: the format, the short, and how long it took to make (in total and per step)
+    for extra in ("format", "short_file", "render_seconds", "render_steps", "narrative_walkthrough"):
+        if episode_data.get(extra) is not None:
+            ep_record[extra] = episode_data[extra]
+
     # Update existing episode if present
     for i, ep in enumerate(episodes):
         if ep.get("episode_num") == ep_num:
@@ -325,5 +334,66 @@ def get_continuity_context(series_id: str) -> dict:
         "characters": series.get("characters", []),
         "past_episodes": past_summaries,
         "latest_unresolved_hook": latest_hook,
+        "brief": series.get("brief", ""),
+        "locations": [loc.get("name") for loc in series.get("locations", []) or []],
         "next_episode_num": len(episodes) + 1
     }
+
+
+
+# ---------------------------------------------------------------- Location Vault (places of the series)
+
+def _loc_id(name: str) -> str:
+    return _slugify(str(name or "place"))[:60]
+
+
+def find_location(series: dict, name: str) -> dict | None:
+    """The saved place with this name (or a name it had before)."""
+    key = _loc_id(name)
+    for loc in series.get("locations", []) or []:
+        if key in [loc.get("id"), _loc_id(loc.get("name", ""))] + [_loc_id(a) for a in loc.get("aliases", [])]:
+            return loc
+    return None
+
+
+def register_location(series_id: str, loc: dict) -> dict | None:
+    """Remember a place the first time a scene uses it (an existing place, maybe fixed by the user, is kept)."""
+    series = get_series(series_id)
+    if not series or not str(loc.get("name") or "").strip():
+        return None
+    have = find_location(series, loc["name"])
+    if have:
+        # a place the owner never fixed follows the better set the reader now finds (its layout stays)
+        if not have.get("edited") and loc.get("kit") and loc.get("kit") != have.get("kit"):
+            have["kit"] = loc["kit"]
+            _save_json(SERIES_DIR / series_id / "series.json", series)
+        return have
+    rec = {"id": _loc_id(loc["name"]), "name": str(loc["name"]).strip()[:80], "kit": loc.get("kit", ""),
+           "era": loc.get("era", ""), "culture": loc.get("culture", ""), "seed": int(loc.get("seed") or 0),
+           "landmarks": list(loc.get("landmarks") or [])[:6], "aliases": [],
+           "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    series.setdefault("locations", []).append(rec)
+    _save_json(SERIES_DIR / series_id / "series.json", series)
+    return rec
+
+
+def update_location(series_id: str, loc_id: str, updates: dict) -> dict | None:
+    """Rename a place, change its set, era or culture, or give it a new layout."""
+    series = get_series(series_id)
+    if not series:
+        return None
+    for loc in series.get("locations", []) or []:
+        if loc.get("id") == loc_id:
+            new_name = str(updates.get("name") or "").strip()
+            if new_name and new_name != loc["name"]:
+                loc.setdefault("aliases", []).append(loc["name"])   # scenes that use the old name still find it
+                loc["name"] = new_name[:80]
+            for k in ("kit", "era", "culture"):
+                if updates.get(k):
+                    loc[k] = str(updates[k])[:40]
+            loc["edited"] = True          # the owner's choice: never changed by the reader again
+            if updates.get("new_layout"):
+                loc["seed"] = int(time.time() * 1000) % 2_000_000_000
+            _save_json(SERIES_DIR / series_id / "series.json", series)
+            return loc
+    return None

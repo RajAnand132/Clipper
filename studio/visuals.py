@@ -342,6 +342,79 @@ def draw_thematic_background(setting: str, visual_style: str, w: int, h: int) ->
             mdraw.polygon([(kx, ky - 36), (kx - 14, ky + 12), (kx + 14, ky + 12)], fill=(80, 240, 245, 240))
             mdraw.polygon([(kx + 10, ky - 26), (kx, ky + 12), (kx + 20, ky + 12)], fill=(220, 120, 255, 220))
 
+    elif any(k in text for k in ["bheem", "dholakpur", "village", "indian", "गाँव", "ढोलकपुर", "palace"]):
+        # Dholakpur Indian Cartoon Village & Sunny Sky
+        sky = Image.new("RGBA", (sky_w, sky_h), (95, 195, 245, 255))
+        sdraw = ImageDraw.Draw(sky)
+        for y in range(sky_h):
+            frac = y / sky_h
+            c = (int(85 + 75 * frac), int(185 + 50 * frac), int(245 - 20 * frac), 255)
+            sdraw.line([(0, y), (sky_w, y)], fill=c)
+
+        # Golden warm Indian sun with radiant halo
+        sun_x, sun_y = int(sky_w * 0.82), int(sky_h * 0.22)
+        for sr in range(120, 0, -10):
+            alpha = int(90 * (1.0 - sr / 120))
+            sdraw.ellipse([sun_x - sr, sun_y - sr, sun_x + sr, sun_y + sr], fill=(255, 235, 120, alpha))
+        _draw_sphere(sdraw, sun_x, sun_y, 45, (255, 215, 50), (255, 255, 230), steps=12)
+
+        # Drifting fluffy white cartoon clouds
+        for cx_c, cy_c, cr in [
+            (int(sky_w * 0.22), int(sky_h * 0.18), 75),
+            (int(sky_w * 0.50), int(sky_h * 0.14), 90),
+            (int(sky_w * 0.70), int(sky_h * 0.26), 65)
+        ]:
+            for r in range(cr, 0, -12):
+                alpha = int(220 * (1.0 - r / cr * 0.2))
+                sdraw.ellipse([cx_c - r, cy_c - int(r * 0.55), cx_c + r, cy_c + int(r * 0.55)], fill=(255, 255, 255, alpha))
+                sdraw.ellipse([cx_c - int(r * 0.6), cy_c - int(r * 0.2), cx_c + int(r * 0.6), cy_c + int(r * 0.6)], fill=(255, 255, 255, alpha))
+
+        # Distant Dholakpur Palace towers with saffron flags
+        for tx in (int(sky_w * 0.35), int(sky_w * 0.42)):
+            sdraw.rounded_rectangle([tx - 28, int(sky_h * 0.38), tx + 28, int(sky_h * 0.58)], radius=8, fill=(235, 195, 145))
+            sdraw.polygon([(tx - 34, int(sky_h * 0.38)), (tx + 34, int(sky_h * 0.38)), (tx, int(sky_h * 0.30))], fill=(215, 95, 35))
+            sdraw.polygon([(tx, int(sky_h * 0.30)), (tx + 28, int(sky_h * 0.26)), (tx, int(sky_h * 0.22))], fill=(255, 120, 20))
+
+        # 2. Midground: Traditional Dholakpur Thatched Huts, Green Banyan Tree & Laddoo Cart
+        mid = Image.new("RGBA", (mid_w, mid_h), (0, 0, 0, 0))
+        mdraw = ImageDraw.Draw(mid)
+
+        # Rolling green hills
+        hill_y = int(mid_h * 0.48)
+        mdraw.ellipse([-150, hill_y, int(mid_w * 0.65), mid_h + 300], fill=(95, 185, 65, 255))
+        mdraw.ellipse([int(mid_w * 0.35), hill_y - 25, mid_w + 200, mid_h + 300], fill=(75, 165, 50, 255))
+
+        # Village Mud Hut with Thatched Roof
+        hx, hy = int(mid_w * 0.18), int(mid_h * 0.52)
+        mdraw.rounded_rectangle([hx - 95, hy, hx + 95, hy + 130], radius=12, fill=(215, 165, 115, 255))
+        mdraw.polygon([(hx - 120, hy + 5), (hx + 120, hy + 5), (hx, hy - 75)], fill=(195, 125, 45, 255))
+        mdraw.rounded_rectangle([hx - 25, hy + 35, hx + 25, hy + 130], radius=8, fill=(85, 45, 25, 255))
+        for gx in range(hx - 100, hx + 101, 18):
+            mdraw.ellipse([gx - 6, hy + 8, gx + 6, hy + 20], fill=(255, 160, 20, 255))
+
+        # Lush Banyan Tree with Hanging Roots
+        bx, by = int(mid_w * 0.85), int(mid_h * 0.45)
+        _draw_sphere(mdraw, bx, by, 140, (45, 145, 45), (105, 215, 85), steps=12)
+        _draw_sphere(mdraw, bx - 80, by + 20, 105, (40, 135, 40), (95, 205, 75), steps=10)
+        mdraw.rounded_rectangle([bx - 35, by + 80, bx + 35, by + 260], radius=14, fill=(115, 75, 45, 255))
+        for rx in (bx - 20, bx + 15):
+            mdraw.line([(rx, by + 120), (rx, by + 220)], fill=(85, 55, 30, 220), width=3)
+
+        # Wooden Laddoo Cart with Golden Laddoos!
+        cx_c, cy_c = int(mid_w * 0.55), int(mid_h * 0.70)
+        mdraw.rounded_rectangle([cx_c - 60, cy_c, cx_c + 60, cy_c + 35], radius=6, fill=(165, 105, 55, 255))
+        for wx in (cx_c - 45, cx_c + 45):
+            mdraw.ellipse([wx - 24, cy_c + 15, wx + 24, cy_c + 63], fill=(125, 75, 35, 255), outline=(65, 35, 15, 255), width=4)
+        mdraw.arc([cx_c - 40, cy_c - 20, cx_c + 40, cy_c + 15], start=0, end=180, fill=(195, 135, 75, 255), width=8)
+        for lx in (-24, -8, 8, 24, -16, 0, 16):
+            _draw_sphere(mdraw, cx_c + lx, cy_c - 14 + (lx % 8), 11, (255, 165, 15), (255, 235, 95), steps=6)
+
+        # Foreground winding cobblestone path & flowers
+        mdraw.ellipse([-100, int(mid_h * 0.72), mid_w + 200, mid_h + 300], fill=(225, 195, 145, 255))
+        for fx in range(50, mid_w, 95):
+            f_col = (255, 105, 180) if (fx % 2 == 0) else (255, 185, 30)
+            mdraw.ellipse([fx - 8, int(mid_h * 0.78), fx + 8, int(mid_h * 0.78) + 14], fill=f_col)
+
     elif any(k in text for k in ["forest", "jungle", "tree", "river", "garden", "panchatantra", "woods"]):
         # Enchanted Forest
         sky = Image.new("RGBA", (sky_w, sky_h), (115, 190, 225, 255))
@@ -514,6 +587,152 @@ def draw_3d_character_sprite(
             draw.ellipse([cx + dx - 10, mouth_y + mouth_open - 2, cx + dx + 10, mouth_y + mouth_open + 6], fill=(245, 110, 140))
         else:
             draw.arc([cx + dx - 18, mouth_y - 8, cx + dx + 18, mouth_y + 10], start=20, end=160, fill=(20, 32, 42), width=4)
+
+    elif any(k in traits for k in ["bheem", "chhota bheem", "chhota_bheem", "भीम"]):
+        # CHHOTA BHEEM
+        head_cy = cy - 75
+        skin_base = (225, 155, 105)
+        skin_light = (248, 195, 150)
+        # Muscular Torso with Orange Dhoti and Golden Belt
+        _draw_sphere(draw, cx, cy + 70, 120, skin_base, skin_light, steps=14)
+        dhoti_y0 = cy + 45
+        draw.rounded_rectangle([cx - 85, dhoti_y0, cx + 85, cy + 125], radius=16, fill=(245, 105, 15))
+        draw.rounded_rectangle([cx - 85, dhoti_y0, cx + 85, dhoti_y0 + 14], radius=6, fill=(255, 215, 0))
+        # Golden wristbands
+        for arm_x in (cx - 95, cx + 95):
+            _draw_sphere(draw, arm_x, cy + 60, 36, skin_base, skin_light, steps=10)
+            draw.rounded_rectangle([arm_x - 18, cy + 50, arm_x + 18, cy + 68], radius=6, fill=(255, 215, 0))
+
+        # Bheem's Head
+        _draw_sphere(draw, cx + dx, head_cy, 115, skin_base, skin_light, steps=14)
+
+        # Black Hair with Orange ribbon
+        draw.ellipse([cx + dx - 105, head_cy - 120, cx + dx + 105, head_cy - 20], fill=(22, 20, 24))
+        draw.ellipse([cx + dx - 26, head_cy - 148, cx + dx + 26, head_cy - 95], fill=(22, 20, 24))
+        draw.rounded_rectangle([cx + dx - 14, head_cy - 124, cx + dx + 14, head_cy - 110], radius=4, fill=(245, 105, 15))
+
+        # Yellow Sandalwood Tilak with Red Bindi
+        tilak_x, tilak_y = cx + dx, head_cy - 48
+        draw.rounded_rectangle([tilak_x - 7, tilak_y - 20, tilak_x + 7, tilak_y + 12], radius=6, fill=(255, 225, 30))
+        draw.ellipse([tilak_x - 5, tilak_y + 4, tilak_x + 5, tilak_y + 14], fill=(215, 35, 35))
+
+        # Big Brave Eyes
+        eye_y = head_cy - 10
+        eye_spacing = 46
+        for ex in (cx + dx - eye_spacing, cx + dx + eye_spacing):
+            if is_blinking:
+                draw.arc([ex - 22, eye_y - 8, ex + 22, eye_y + 14], start=195, end=345, fill=(20, 18, 20), width=5)
+            else:
+                draw.ellipse([ex - 22, eye_y - 26, ex + 22, eye_y + 26], fill=(255, 255, 255))
+                draw.ellipse([ex - 16, eye_y - 18, ex + 16, eye_y + 18], fill=(55, 35, 20))
+                draw.ellipse([ex - 9, eye_y - 10, ex + 9, eye_y + 10], fill=(10, 10, 14))
+                draw.ellipse([ex - 12, eye_y - 16, ex - 4, eye_y - 8], fill=(255, 255, 255))
+
+        # Bold Eyebrows
+        brow_y = eye_y - 34
+        draw.rounded_rectangle([cx + dx - eye_spacing - 24, brow_y, cx + dx - eye_spacing + 24, brow_y + 7], radius=3, fill=(25, 20, 20))
+        draw.rounded_rectangle([cx + dx + eye_spacing - 24, brow_y, cx + dx + eye_spacing + 24, brow_y + 7], radius=3, fill=(25, 20, 20))
+
+        # Smile & Talking Mouth Viseme
+        mouth_y = head_cy + 42
+        if mouth_open > 2:
+            draw.ellipse([cx + dx - 24, mouth_y - 2, cx + dx + 24, mouth_y + mouth_open + 6], fill=(50, 15, 15))
+            draw.ellipse([cx + dx - 12, mouth_y + mouth_open - 2, cx + dx + 12, mouth_y + mouth_open + 8], fill=(245, 105, 125))
+        else:
+            draw.arc([cx + dx - 26, mouth_y - 8, cx + dx + 26, mouth_y + 18], start=15, end=165, fill=(65, 20, 18), width=5)
+
+    elif any(k in traits for k in ["chutki", "चुटकी"]):
+        # CHUTKI
+        head_cy = cy - 75
+        skin_base = (235, 175, 130)
+        skin_light = (252, 210, 175)
+        _draw_sphere(draw, cx, cy + 70, 110, (140, 50, 160), (195, 95, 215), steps=14)
+        draw.rounded_rectangle([cx - 75, cy + 30, cx + 75, cy + 85], radius=16, fill=(245, 215, 30))
+
+        _draw_sphere(draw, cx + dx, head_cy, 105, skin_base, skin_light, steps=14)
+        draw.ellipse([cx + dx - 98, head_cy - 110, cx + dx + 98, head_cy - 15], fill=(25, 22, 28))
+        draw.rounded_rectangle([cx + dx - 120, head_cy - 20, cx + dx - 85, head_cy + 95], radius=18, fill=(25, 22, 28))
+        draw.rounded_rectangle([cx + dx + 85, head_cy - 20, cx + dx + 120, head_cy + 95], radius=18, fill=(25, 22, 28))
+        draw.ellipse([cx + dx + 72, head_cy - 55, cx + dx + 105, head_cy - 22], fill=(245, 85, 145))
+        draw.ellipse([cx + dx + 83, head_cy - 44, cx + dx + 95, head_cy - 33], fill=(255, 225, 45))
+        draw.ellipse([cx + dx - 5, head_cy - 40, cx + dx + 5, head_cy - 30], fill=(215, 30, 45))
+
+        eye_y = head_cy - 12
+        eye_spacing = 42
+        for ex in (cx + dx - eye_spacing, cx + dx + eye_spacing):
+            if is_blinking:
+                draw.arc([ex - 20, eye_y - 6, ex + 20, eye_y + 12], start=195, end=345, fill=(35, 20, 25), width=4)
+            else:
+                draw.ellipse([ex - 20, eye_y - 24, ex + 20, eye_y + 24], fill=(255, 255, 255))
+                draw.ellipse([ex - 15, eye_y - 18, ex + 15, eye_y + 18], fill=(50, 115, 65))
+                draw.ellipse([ex - 8, eye_y - 10, ex + 8, eye_y + 10], fill=(15, 15, 20))
+                draw.ellipse([ex - 11, eye_y - 15, ex - 4, eye_y - 8], fill=(255, 255, 255))
+
+        mouth_y = head_cy + 38
+        if mouth_open > 2:
+            draw.ellipse([cx + dx - 20, mouth_y - 2, cx + dx + 20, mouth_y + mouth_open + 4], fill=(45, 15, 20))
+            draw.ellipse([cx + dx - 10, mouth_y + mouth_open - 2, cx + dx + 10, mouth_y + mouth_open + 6], fill=(245, 115, 135))
+        else:
+            draw.arc([cx + dx - 22, mouth_y - 8, cx + dx + 22, mouth_y + 14], start=20, end=160, fill=(60, 20, 25), width=4)
+
+    elif any(k in traits for k in ["raju", "राजू"]):
+        # RAJU
+        head_cy = cy - 75
+        skin_base = (230, 165, 115)
+        skin_light = (250, 200, 160)
+        _draw_sphere(draw, cx, cy + 70, 105, skin_base, skin_light, steps=14)
+        draw.rounded_rectangle([cx - 75, cy + 50, cx + 75, cy + 115], radius=16, fill=(35, 115, 225))
+        draw.line([(cx - 65, cy + 25), (cx + 65, cy + 75)], fill=(225, 45, 45), width=10)
+
+        _draw_sphere(draw, cx + dx, head_cy, 100, skin_base, skin_light, steps=14)
+        draw.ellipse([cx + dx - 90, head_cy - 105, cx + dx + 90, head_cy - 20], fill=(28, 22, 22))
+
+        eye_y = head_cy - 10
+        eye_spacing = 38
+        for ex in (cx + dx - eye_spacing, cx + dx + eye_spacing):
+            if is_blinking:
+                draw.arc([ex - 18, eye_y - 6, ex + 18, eye_y + 10], start=195, end=345, fill=(25, 20, 20), width=4)
+            else:
+                draw.ellipse([ex - 18, eye_y - 22, ex + 18, eye_y + 22], fill=(255, 255, 255))
+                draw.ellipse([ex - 13, eye_y - 16, ex + 13, eye_y + 16], fill=(45, 75, 155))
+                draw.ellipse([ex - 7, eye_y - 9, ex + 7, eye_y + 9], fill=(15, 15, 20))
+                draw.ellipse([ex - 9, eye_y - 14, ex - 4, eye_y - 8], fill=(255, 255, 255))
+
+        mouth_y = head_cy + 36
+        if mouth_open > 2:
+            draw.ellipse([cx + dx - 18, mouth_y - 2, cx + dx + 18, mouth_y + mouth_open + 4], fill=(45, 15, 15))
+        else:
+            draw.arc([cx + dx - 20, mouth_y - 6, cx + dx + 20, mouth_y + 14], start=20, end=160, fill=(55, 20, 20), width=4)
+
+    elif any(k in traits for k in ["kalia", "कालिया"]):
+        # KALIA
+        head_cy = cy - 75
+        skin_base = (210, 145, 95)
+        skin_light = (238, 185, 140)
+        _draw_sphere(draw, cx, cy + 70, 130, (45, 125, 65), (85, 185, 110), steps=14)
+        draw.rounded_rectangle([cx - 90, cy + 55, cx + 90, cy + 130], radius=16, fill=(215, 45, 35))
+
+        _draw_sphere(draw, cx + dx, head_cy, 120, skin_base, skin_light, steps=14)
+        draw.ellipse([cx + dx - 105, head_cy - 115, cx + dx + 105, head_cy - 15], fill=(20, 18, 18))
+        draw.arc([cx + dx - 30, head_cy + 22, cx + dx, head_cy + 36], start=180, end=360, fill=(20, 15, 15), width=4)
+        draw.arc([cx + dx, head_cy + 22, cx + dx + 30, head_cy + 36], start=180, end=360, fill=(20, 15, 15), width=4)
+
+        eye_y = head_cy - 14
+        eye_spacing = 46
+        for ex in (cx + dx - eye_spacing, cx + dx + eye_spacing):
+            if is_blinking:
+                draw.arc([ex - 20, eye_y - 6, ex + 20, eye_y + 12], start=195, end=345, fill=(20, 15, 15), width=4)
+            else:
+                draw.ellipse([ex - 20, eye_y - 24, ex + 20, eye_y + 24], fill=(255, 255, 255))
+                draw.ellipse([ex - 14, eye_y - 16, ex + 14, eye_y + 16], fill=(45, 35, 25))
+                draw.ellipse([ex - 8, eye_y - 10, ex + 8, eye_y + 10], fill=(15, 15, 20))
+                draw.ellipse([ex - 10, eye_y - 14, ex - 4, eye_y - 8], fill=(255, 255, 255))
+
+        mouth_y = head_cy + 42
+        if mouth_open > 2:
+            draw.ellipse([cx + dx - 22, mouth_y - 2, cx + dx + 22, mouth_y + mouth_open + 4], fill=(45, 15, 15))
+        else:
+            draw.arc([cx + dx - 24, mouth_y - 6, cx + dx + 24, mouth_y + 14], start=20, end=160, fill=(50, 20, 18), width=4)
 
     elif any(k in traits for k in ["fox", "nova"]):
         # FOX (Nova - Space Fox)
@@ -781,6 +1000,15 @@ def generate_character_avatar(series_id: str, character: dict, visual_style: str
     char_name = character.get("name", "Character")
     species = character.get("species", "Character")
     visual = character.get("visual_anchor") or f"3D character {char_name}, expressive eyes, detailed attire"
+
+    # 0. Series made as 3D animation: the card shows the real 3D character that acts in the episodes
+    try:
+        from studio import anim3d, formats, memory
+        fmt = formats.resolve(memory.get_series(sid) or {})
+        if anim3d.enabled_for(fmt) and anim3d.portrait(character, fmt, out_file):
+            return out_file
+    except Exception as e:  # noqa: BLE001
+        log.warning("3D portrait for %s failed: %s", char_name, e)
 
     # 1. Try real AI image generation for true 3D character design portrait
     from studio import providers

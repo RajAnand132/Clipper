@@ -103,9 +103,38 @@ def _split_into_tts_chunks(text: str, max_chars: int = 320) -> list[str]:
 MP3_BYTES_PER_SEC = 48000 / 8  # edge-tts sends 24 kHz 48 kbit/s mono MP3
 
 
-async def _stream_tts_chunk(chunk_text: str, voice_id: str, retries: int = 3, rate: str = "+0%",
+class VoiceServiceError(RuntimeError):
+    """Microsoft's voice service could not be reached (usually the internet): the scene would be silent."""
+
+
+class UnknownVoice(RuntimeError):
+    """The voice service answered but made no sound: the voice does not exist (or cannot say this text)."""
+
+
+_FEMALE_VOICE_NAMES = {"neerja", "swara", "jenny", "aria", "ana", "sonia", "elvira", "dalia", "denise", "katja",
+                       "nanami", "ananya", "aarti", "kavya", "pallavi", "shruti", "michelle", "libby", "natasha",
+                       "clara", "emma", "ava", "sara", "jane", "nancy", "aashi", "aditi", "kajal", "isha"}
+
+
+def usable_voice(voice_id: str) -> str:
+    """A voice that exists: this one when it is in the catalogue, else one of the same language and the same
+    gender (e.g. the made-up 'hi-IN-NeerjaNeural' → 'hi-IN-SwaraNeural')."""
+    if any(v["id"] == voice_id for v in VOICE_CATALOG):
+        return voice_id
+    vid = str(voice_id or "")
+    name = vid.split("-")[-1].replace("Neural", "").lower()
+    gender = "female" if name in _FEMALE_VOICE_NAMES else "male"
+    cands = [v for v in VOICE_CATALOG if v["id"].startswith(vid[:5])] or list_voices(vid[:2]) or list_voices("en")
+    same = [v for v in cands if v["gender"] == gender] or cands
+    return same[0]["id"]
+
+
+async def _stream_tts_chunk(chunk_text: str, voice_id: str, retries: int = 5, rate: str = "+0%",
                             pitch: str = "+0Hz") -> tuple[bytes, list[dict], float]:
-    """Synthesizes a single chunk with automatic retry and word boundary capture."""
+    """Synthesizes a single chunk with automatic retry and word boundary capture.
+    Raises UnknownVoice when the service makes no sound for this voice, VoiceServiceError when it cannot be
+    reached after waiting about half a minute (2, 4, 8, 16 s between tries)."""
+    last = None
     for attempt in range(retries):
         try:
             communicate = edge_tts.Communicate(chunk_text, voice_id, rate=rate, pitch=pitch, boundary="WordBoundary")
@@ -130,11 +159,17 @@ async def _stream_tts_chunk(chunk_text: str, voice_id: str, retries: int = 3, ra
                 # the real length of the audio (it ends in silence after the last word), so the next chunk's
                 # words line up with the sound instead of drifting earlier and earlier
                 return bytes(audio_bytes), words, max(max_end, len(audio_bytes) / MP3_BYTES_PER_SEC)
+            last = UnknownVoice("no audio")
         except Exception as e:
             log.warning("TTS chunk attempt %d failed for voice %s: %s", attempt + 1, voice_id, e)
-            if attempt < retries - 1:
-                await asyncio.sleep(1.0 * (attempt + 1))
-    return b"", [], 0.0
+            last = UnknownVoice(str(e)) if "No audio was received" in str(e) else e
+        if isinstance(last, UnknownVoice) and attempt >= 1:   # asked twice, no sound: not the internet
+            raise last
+        if attempt < retries - 1:
+            await asyncio.sleep(2.0 * 2 ** attempt if not isinstance(last, UnknownVoice) else 1.0)
+    if isinstance(last, UnknownVoice):
+        raise last
+    raise VoiceServiceError(f"Could not reach the voice service: {last}")
 
 
 async def _stream_tts(text: str, voice_id: str, out_audio: Path, rate: str = "+0%", pitch: str = "+0Hz") -> list[dict]:
@@ -147,7 +182,7 @@ async def _stream_tts(text: str, voice_id: str, out_audio: Path, rate: str = "+0
     with open(out_audio, "wb") as f_out:
         for chunk in chunks:
             raw_audio, chunk_words, chunk_duration = await _stream_tts_chunk(chunk, voice_id, rate=rate, pitch=pitch)
-            if raw_audio:
+            if raw_audio:   # (a chunk that fails raises: a line is never left half-said)
                 f_out.write(raw_audio)
                 for w in chunk_words:
                     all_words.append({
@@ -168,14 +203,21 @@ def synthesize_scene_voice(text: str, voice_id: str, out_audio: Path, rate: str 
         return []
     try:
         return asyncio.run(_stream_tts(text, voice_id, out_audio, rate=_pct(rate), pitch=_hz(pitch)))
-    except Exception as e:
-        log.error("TTS synthesis error with voice %s: %s", voice_id, e)
-        # Try fallback voice if specified voice fails
-        if voice_id != "en-US-ChristopherNeural":
+    except UnknownVoice:
+        # a voice that does not exist (an AI may invent one): a real voice of the same language and gender
+        alt = usable_voice(voice_id)
+        if alt != voice_id:
+            log.warning("voice %s does not exist; using %s", voice_id, alt)
             try:
-                return asyncio.run(_stream_tts(text, "en-US-ChristopherNeural", out_audio))
-            except Exception:
+                return asyncio.run(_stream_tts(text, alt, out_audio, rate=_pct(rate), pitch=_hz(pitch)))
+            except UnknownVoice:
                 pass
+        log.error("no sound for this line with voice %s: %.40s", voice_id, text)
+        return []
+    except VoiceServiceError:
+        raise   # no internet: the caller stops instead of making silent scenes
+    except Exception as e:  # noqa: BLE001
+        log.error("TTS synthesis error with voice %s: %s", voice_id, e)
         return []
 
 
@@ -234,32 +276,49 @@ def synthesize_lines(lines: list[dict], out_audio: Path, gap: float = 0.35) -> t
     """
     from studio.concat import NO_WINDOW, _get_duration
     import subprocess
+    from studio import animals
     out_audio.parent.mkdir(parents=True, exist_ok=True)
-    parts, words, spans = [], [], []
+    parts, words, spans = [], [], []      # parts: (file, length, pause after it)
     t = 0.0
     for i, ln in enumerate(lines):
-        text = (ln.get("text") or "").strip()
+        text = animals.stage_free(ln.get("text") or "")     # "(धीरे से)" and "[laughs]" are directions, not words
         if not text:
             continue
-        rate, pitch = ln.get("rate", "+0%"), ln.get("pitch", "+0Hz")
-        emo = EMOTION_PROSODY.get(str(ln.get("emotion", "")).lower())
-        if emo:
-            rate, pitch = _add(rate, emo[0], "%"), _add(pitch, emo[1], "Hz")
-        part = out_audio.with_name(f"{out_audio.stem}_l{i:02d}.mp3")
-        w = synthesize_scene_voice(text, ln.get("voice_id") or "en-US-ChristopherNeural", part, rate=rate, pitch=pitch)
-        if not part.is_file() or part.stat().st_size < 500:
-            continue
-        dur = _get_duration(part) or (max((x["e"] for x in w), default=0.0) + 0.3)
-        words += [{"w": x["w"], "s": round(x["s"] + t, 3), "e": round(x["e"] + t, 3)} for x in w]
-        spans.append((round(t, 3), round(t + dur, 3)))
-        parts.append((part, dur))
-        t += dur + gap
+        start = t
+        said = text
+        # an animal's noises ("भौं-भौं!", "म्याऊँ") are its real sound, then whatever it says in words
+        if ln.get("animal"):
+            noises, said = animals.split_line(text, ln["animal"])
+            clip, marks = animals.noise_clip(noises) if noises else (None, [])
+            if clip is not None and len(clip):
+                import soundfile as _sf
+                part = out_audio.with_name(f"{out_audio.stem}_l{i:02d}_animal.wav")
+                _sf.write(str(part), clip, animals.sfx.SR, subtype="PCM_16")
+                dur = len(clip) / animals.sfx.SR
+                # the noise shows as a word (captions, the mouth moves with each bark) but is not a sound cue again
+                words += [{"w": w, "s": round(s + t, 3), "e": round(e + t, 3), "fx": True} for w, s, e in marks]
+                parts.append((part, dur, 0.18 if said else gap))
+                t += dur + (0.18 if said else gap)
+        if said:
+            rate, pitch = ln.get("rate", "+0%"), ln.get("pitch", "+0Hz")
+            emo = EMOTION_PROSODY.get(str(ln.get("emotion", "")).lower())
+            if emo:
+                rate, pitch = _add(rate, emo[0], "%"), _add(pitch, emo[1], "Hz")
+            part = out_audio.with_name(f"{out_audio.stem}_l{i:02d}.mp3")
+            w = synthesize_scene_voice(said, ln.get("voice_id") or "en-US-ChristopherNeural", part, rate=rate, pitch=pitch)
+            if part.is_file() and part.stat().st_size >= 500:
+                dur = _get_duration(part) or (max((x["e"] for x in w), default=0.0) + 0.3)
+                words += [{"w": x["w"], "s": round(x["s"] + t, 3), "e": round(x["e"] + t, 3)} for x in w]
+                parts.append((part, dur, gap))
+                t += dur + gap
+        if t > start:
+            spans.append((round(start, 3), round(t - gap, 3)))
     if not parts:
         return [], []
     cmd = ["ffmpeg", "-y", "-v", "error"]
-    for p, _ in parts:
+    for p, _d, _g in parts:
         cmd += ["-i", str(p)]
-    chain = "".join(f"[{i}:a]aresample=48000,aformat=channel_layouts=mono,apad=pad_dur={gap if i < len(parts) - 1 else 0.01}[a{i}];"
+    chain = "".join(f"[{i}:a]aresample=48000,aformat=channel_layouts=mono,apad=pad_dur={parts[i][2] if i < len(parts) - 1 else 0.01}[a{i}];"
                     for i in range(len(parts)))
     chain += "".join(f"[a{i}]" for i in range(len(parts))) + f"concat=n={len(parts)}:v=0:a=1[out]"
     cmd += ["-filter_complex", chain, "-map", "[out]", "-c:a", "libmp3lame", "-b:a", "128k", str(out_audio)]
@@ -267,7 +326,7 @@ def synthesize_lines(lines: list[dict], out_audio: Path, gap: float = 0.35) -> t
     if r.returncode != 0:
         log.error("joining scene lines failed: %s", r.stderr[-300:])
         return [], []
-    for p, _ in parts:
+    for p, _d, _g in parts:
         p.unlink(missing_ok=True)
     return words, spans
 
@@ -292,3 +351,43 @@ def pick_voice(lang: str, hint: str = "", taken: set | None = None) -> str:
     ranked = sorted(voices, key=lambda v: (v["id"] in taken, v["gender"] != want,
                                            child != ("Child" in v["name"] or "Boyish" in v["name"])))
     return ranked[0]["id"] if ranked else default_voice_for_lang(lang)
+
+
+_OLD = re.compile(r"\b(old|elder|aged|grand\w*)\b|दादा|दादी|नाना|नानी|बूढ़|बुजुर्ग", re.I)
+_BIG = re.compile(r"bear|elephant|lion|tiger|bull|cow|gorilla|giant|dragon|dino|wolf|भालू|हाथी|शेर|बाघ|बैल|गाय|दानव", re.I)
+_SMALL = re.compile(r"mouse|rat|bird|chick|rabbit|bunny|squirrel|kitten|puppy|fairy|spirit|frog|duck|"
+                    r"चूहा|चिड़िया|खरगोश|गिलहरी|परी|मेंढक", re.I)
+
+
+def cast_voice(lang: str, hint: str = "", used: list | None = None) -> dict:
+    """Cast a voice for a character: a voice in the language that matches who they are, plus their own pitch and
+    speed (a big bear deeper and slower, a child or a mouse higher and quicker). Languages with few voices
+    (Hindi has two) still give every character a different sound: repeats of a voice are shifted apart.
+    used: the {voice_id, voice_rate, voice_pitch} already given to the rest of the cast."""
+    used = list(used or [])
+    voices = list_voices(lang) or list_voices("en")
+    want = guess_gender(hint)
+    child, old = bool(_CHILD.search(hint or "")), bool(_OLD.search(hint or ""))
+    big, small = bool(_BIG.search(hint or "")), bool(_SMALL.search(hint or ""))
+    same_gender = [v for v in voices if v["gender"] == want] or voices
+    if child:   # a child voice when the language has one; otherwise a lifted female voice, as cartoons do
+        kids = [v for v in voices if "Child" in v["name"] or "Boyish" in v["name"]]
+        same_gender = kids or [v for v in voices if v["gender"] == "female"] or same_gender
+    counts = {v["id"]: sum(1 for u in used if u.get("voice_id") == v["id"]) for v in same_gender}
+    voice = min(same_gender, key=lambda v: (counts[v["id"]], same_gender.index(v)))["id"]
+    rate, pitch = 0, 0
+    if big:
+        rate, pitch = -8, -14
+    elif small:
+        rate, pitch = 10, 22
+    elif child:
+        rate, pitch = 8, 16 if want == "male" else 12
+    elif old:
+        rate, pitch = -12, -4
+    taken = {(u.get("voice_id"), u.get("voice_rate"), u.get("voice_pitch")) for u in used}
+    k = 0
+    while (voice, _pct(rate), _hz(pitch)) in taken and k < 8:   # same voice and sound: move it apart
+        k += 1
+        pitch += 7 if k % 2 else -14
+        rate += 3
+    return {"voice_id": voice, "voice_rate": _pct(rate), "voice_pitch": _hz(pitch)}

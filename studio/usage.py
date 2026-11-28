@@ -19,7 +19,7 @@ def set_context(creator=None, where=None):
     _where.creator, _where.where = creator, where
 
 
-def record(tokens_in: int, tokens_out: int, purpose: str):
+def record(tokens_in: int, tokens_out: int, purpose: str, where: str | None = None):
     uid = ctx.uid_or_none()
     if not uid:
         return
@@ -27,9 +27,35 @@ def record(tokens_in: int, tokens_out: int, purpose: str):
         c.execute(db.usage.insert().values(user_id=uid, t=time.time(), tokens_in=max(0, int(tokens_in)),
                                            tokens_out=max(0, int(tokens_out)), purpose=purpose[:60],
                                            creator=getattr(_where, "creator", None),
-                                           place=(getattr(_where, "where", None) or "")[:200]))
+                                           place=(where or getattr(_where, "where", None) or "")[:200]))
     _brief.pop(uid, None)
     ctx.bump(uid)
+
+
+def studio_call(model, prompt, schema, purpose: str, where: str | None = None, **kw):
+    """An AI call made by the AI Studio (story ideas, scripts, characters, titles…), recorded like the clip finder's
+    calls: it shows in the sidebar's "today" count and on the AI usage page, with its purpose and the series.
+    Returns what ai.call returns."""
+    for attempt in range(3):
+        try:
+            out, sent, wrote = ai.call(model, prompt, schema, **kw)
+            break
+        except ai.Unreadable as e:     # it answered (the tokens count), but the answer could not be used
+            record(e.sent, e.wrote, purpose, where)
+            raise
+        except Exception as e:  # noqa: BLE001
+            # "high demand" (503) or a short per-minute limit passes in seconds: wait a little and ask again.
+            # A daily quota does not pass: the caller moves on to the next model straight away.
+            busy = "HTTP 503" in str(e) or "HTTP 500" in str(e) or ("HTTP 429" in str(e) and "per day" not in str(e).lower()
+                                                                     and "quota" not in str(e).lower())
+            if busy and attempt < 2:
+                time.sleep(4 * (attempt + 1))
+                continue
+            ai.note_problem(e)         # a quota or a wrong key shows in the sidebar, as for clips
+            raise
+    record(sent, wrote, purpose, where)
+    ai.clear_problem()
+    return out, sent, wrote
 
 
 def forget(uid: str):

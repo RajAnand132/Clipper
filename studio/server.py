@@ -2643,6 +2643,26 @@ def _get_series_trends(country: str = "IN"):
     return {"country": country.strip().upper(), "trends": trends}
 
 
+@app.post("/api/series/ideas")
+def _series_ideas(body: dict = Body(...)):
+    """Titles, casts or whole blueprints that fit the chosen video format, market and language (studio/concepts.py)."""
+    from studio import concepts
+    return concepts.suggest(str(body.get("format") or ""), str(body.get("market") or "IN"),
+                            str(body.get("lang") or "en"), str(body.get("want") or "all"),
+                            str(body.get("title") or "")[:200], str(body.get("genre") or "")[:200],
+                            str(body.get("cast") or "")[:600], int(body.get("count") or 4))
+
+
+@app.post("/api/series/from-brief")
+def _series_from_brief(body: dict = Body(...)):
+    """Everything for a new series read from the creator's own pasted idea (studio/concepts.py)."""
+    from studio import concepts
+    res = concepts.series_from_brief(str(body.get("text") or "")[:12000], str(body.get("market") or "IN"))
+    if res.get("error"):
+        raise HTTPException(503, res["error"])
+    return res
+
+
 @app.post("/api/series")
 def _create_series(body: dict = Body(...)):
     title = str(body.get("title") or "").strip()
@@ -2651,20 +2671,24 @@ def _create_series(body: dict = Body(...)):
     fmt_id = str(body.get("format") or "")
     fmt = video_formats.get(fmt_id) if fmt_id in video_formats.FORMATS else None
     # every seeded character gets its own voice in the show's language (the form sends one voice for all)
+    # (cast_voice: a voice that suits the character plus its own pitch and speed, so even Hindi with two voices
+    # gives every character a different sound)
     lang = str(body.get("default_language") or "en").lower()
-    pool = [v["id"] for v in tts.list_voices(lang)]
     narrator = video_formats.narrator_voice(fmt or video_formats.get(None), lang)
-    taken = {narrator}
+    used = [{"voice_id": narrator, "voice_rate": "+0%", "voice_pitch": "+0Hz"}]
     for c in body.get("characters") or []:
         if not isinstance(c, dict):
             continue
-        v = c.get("voice_id")
         hint = f"{c.get('name', '')} {c.get('species', '')} {c.get('visual_anchor', '')}"
-        if not v or v in taken or (pool and v not in pool) or tts.guess_gender(hint) == "female" and \
-                next((x["gender"] for x in tts.VOICE_CATALOG if x["id"] == v), "female") != "female":
-            v = tts.pick_voice(lang, hint, taken)
-        c["voice_id"] = v
-        taken.add(v)
+        cast = tts.cast_voice(lang, hint, used)
+        c.update(cast)
+        used.append(cast)
+    try:   # the AI designer gives each starting character its 3D look (any kind of character)
+        from studio import concepts
+        concepts.attach_designs([c for c in body.get("characters") or [] if isinstance(c, dict)],
+                                fmt or video_formats.get(None))
+    except Exception as e:  # noqa: BLE001
+        log.warning("character designs failed: %s", e)
     s = memory.create_series(
         title=title,
         genre=str(body.get("genre") or (fmt["name"] if fmt else "3D Cartoon Adventure")),
@@ -2672,7 +2696,8 @@ def _create_series(body: dict = Body(...)):
         aspect_ratio=str(body.get("aspect_ratio") or (fmt["aspect_ratio"] if fmt else "16:9")),
         format=fmt_id if fmt else "",
         default_language=str(body.get("default_language") or "en"),
-        characters=body.get("characters") or []
+        characters=body.get("characters") or [],
+        brief=str(body.get("brief") or "")[:8000]
     )
     # Generate 3D avatars for initial seeded characters immediately
     for c in s.get("characters", []):
@@ -2707,8 +2732,112 @@ def _delete_series(sid: str):
     return {"ok": True, "series_id": sid}
 
 
+@app.get("/api/series/{sid}/locations")
+def _series_locations(sid: str):
+    s = memory.get_series(sid)
+    if not s:
+        raise HTTPException(404, "Series not found")
+    return {"locations": s.get("locations", [])}
+
+
+def _location_picture(sid: str, loc: dict, out: Path) -> bool:
+    """A still of the place on its own, made the first time it is asked for."""
+    from studio.anim3d import worker
+    if not worker.available():
+        return False
+    s = memory.get_series(sid) or {}
+    fmt = video_formats.resolve(s)
+    from studio.anim3d import sets as _sets
+    world = _sets.scene_set({"setting": loc.get("name", ""), "set": {"location_name": loc.get("name", "")}}, fmt, s, 1)
+    spec = {"w": 960, "h": 540, "fps": 12, "duration": 2, "seed": 3, "fov": 46, "world": world, "cast": [], "lines": [],
+            "words": [], "actions": [], "emotions": [], "shots": [{"kind": "wide", "t0": 0, "t1": 2}],
+            "story": {"props": [], "fx": _sets.weather_fx(world, 2), "looks": []}}
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with worker.Browser() as b:
+        return b.snapshot(spec, 0.8, out)
+
+
+@app.get("/api/series/{sid}/locations/{lid}/image.jpg")
+def _series_location_image(sid: str, lid: str):
+    s = memory.get_series(sid)
+    loc = next((x for x in (s or {}).get("locations", []) if x.get("id") == lid), None)
+    if not loc:
+        raise HTTPException(404, "Place not found")
+    img = config.DATA_DIR / "series" / sid / "locations" / f"{lid}_{loc.get('seed', 0)}_{loc.get('kit', '')}.jpg"
+    if not img.is_file():
+        for old in img.parent.glob(f"{lid}_*.jpg") if img.parent.is_dir() else []:
+            old.unlink(missing_ok=True)
+        if not _location_picture(sid, loc, img):
+            return FileResponse(WEB / "brand" / "favicon.svg", media_type="image/svg+xml")
+    return FileResponse(img, media_type="image/jpeg", headers={"Cache-Control": "no-cache"})
+
+
+@app.post("/api/series/{sid}/locations/{lid}")
+def _series_location_update(sid: str, lid: str, body: dict = Body(...)):
+    loc = memory.update_location(sid, lid, body or {})
+    if not loc:
+        raise HTTPException(404, "Place not found")
+    return loc
+
+
+@app.post("/api/series/{sid}/preview-scene")
+def _series_preview_scene(sid: str, body: dict = Body(...)):
+    """One still of a scene (its set and its cast) in a few seconds, before the episode is made. No voices are made:
+    the timing is estimated from the words."""
+    from studio import production
+    from studio.anim3d import director, worker
+    s = memory.get_series(sid)
+    if not s:
+        raise HTTPException(404, "Series not found")
+    if not worker.available():
+        raise HTTPException(503, "The 3D preview needs Chrome or Edge")
+    fmt = video_formats.resolve(s)
+    lang = (s.get("default_language") or "en").lower()
+    sc = production.normalize_scene(dict(body.get("scene") or {}), s, fmt, lang)
+    spans, words, t = [], [], 0.3
+    for ln in sc.get("lines") or []:
+        s0 = t
+        for w in str(ln.get("text") or "").split()[:60]:
+            words.append({"w": w, "s": round(t, 2), "e": round(t + 0.36, 2)})
+            t += 0.42
+        spans.append((s0, t))
+        t += 0.35
+    total = max(3.0, t + 1.0)
+    aspect = fmt.get("aspect_ratio", "16:9")
+    size = (960, 540) if aspect == "16:9" else (540, 960)
+    spec = director.build_spec(sc, s, fmt, lang, spans, words, total, 2, aspect, sid, size=size, fps=12)
+    out = config.DATA_DIR / "series" / sid / "temp" / f"preview_{int(time.time() * 1000)}.jpg"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with worker.Browser() as b:
+        ok = b.snapshot(spec, min(1.0, total / 3), out)
+    if not ok or not out.is_file():
+        raise HTTPException(500, "Could not make the preview")
+    return FileResponse(out, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/series/{sid}/characters/suggest")
+def _suggest_series_characters(sid: str, body: dict = Body(...)):
+    """New characters that fit this series and its story (studio/concepts.py), each with a voice."""
+    from studio import concepts
+    s = memory.get_series(sid)
+    if not s:
+        raise HTTPException(404, "Series not found")
+    return concepts.suggest_characters(s, str(body.get("hint") or "")[:300], str(body.get("episode") or "")[:800],
+                                       int(body.get("count") or 3))
+
+
 @app.post("/api/series/{sid}/characters")
 def _add_series_character(sid: str, body: dict = Body(...)):
+    s0 = memory.get_series(sid)
+    if s0 and not body.get("toon"):
+        try:
+            from studio import concepts
+            concepts.attach_designs([body], video_formats.resolve(s0))
+        except Exception as e:  # noqa: BLE001
+            log.warning("character design failed: %s", e)
+    elif body.get("toon"):
+        from studio.anim3d import characters as toon_rules
+        body["toon"] = toon_rules.clean_toon(body["toon"])
     char = memory.add_character(sid, body)
     if not char:
         raise HTTPException(404, "Series not found")
@@ -2737,7 +2866,11 @@ def _get_character_avatar(sid: str, cid: str):
 
 
 @app.post("/api/series/{sid}/characters/{cid}/avatar")
-def _regenerate_character_avatar(sid: str, cid: str):
+def _regenerate_character_avatar(sid: str, cid: str, body: dict | None = Body(None)):
+    """Re-render 3D Look. mode "new" (default): a different look each time (the AI designer is told the previous
+    design; without an AI the next look number picks other colours and hair); "previous": the look before back;
+    "same": only redraw. A changed visual_anchor is saved and the character is designed from it."""
+    body = body or {}
     s = memory.get_series(sid)
     if not s:
         raise HTTPException(404, "Series not found")
@@ -2745,9 +2878,40 @@ def _regenerate_character_avatar(sid: str, cid: str):
     char = next((c for c in chars if c.get("id") == cid), None)
     if not char:
         raise HTTPException(404, "Character not found")
-    avatar = visuals.generate_character_avatar(sid, char, s.get("visual_style", ""))
+    mode = str(body.get("mode") or "new")
+    va = str(body.get("visual_anchor") or "").strip()
+    hist = list(char.get("look_history") or [])
+    now = {"toon": char.get("toon"), "look_seed": int(char.get("look_seed") or 0), "visual_anchor": char.get("visual_anchor", "")}
+    if mode == "previous":
+        if not hist:
+            raise HTTPException(409, "There is no earlier look to go back to")
+        back = hist.pop()
+        char.update({"toon": back.get("toon"), "look_seed": back.get("look_seed", 0),
+                     "visual_anchor": back.get("visual_anchor") or char.get("visual_anchor", "")})
+    elif mode == "new" or (va and va != char.get("visual_anchor")):
+        hist = (hist + [now])[-5:]
+        described_again = bool(va and va != char.get("visual_anchor"))
+        if va:
+            char["visual_anchor"] = va
+        char["look_seed"] = now["look_seed"] + 1
+        char["toon"] = None
+        try:
+            from studio import concepts
+            concepts.attach_designs([char], video_formats.resolve(s), avoid=None if described_again else [now["toon"]])
+        except Exception as e:  # noqa: BLE001
+            log.warning("character design failed: %s", e)
+    elif not char.get("toon"):
+        try:
+            from studio import concepts
+            concepts.attach_designs([char], video_formats.resolve(s))
+        except Exception as e:  # noqa: BLE001
+            log.warning("character design failed: %s", e)
+    memory.add_character(sid, {"id": cid, "toon": char.get("toon"), "look_seed": char.get("look_seed", 0),
+                               "look_history": hist, "visual_anchor": char.get("visual_anchor", "")})
+    visuals.generate_character_avatar(sid, char, s.get("visual_style", ""))
     return {
-        "avatar_url": f"/api/series/{sid}/characters/{cid}/avatar.jpg?t={int(time.time())}"
+        "avatar_url": f"/api/series/{sid}/characters/{cid}/avatar.jpg?t={int(time.time())}",
+        "has_previous": bool(hist), "visual_anchor": char.get("visual_anchor", ""),
     }
 
 
@@ -2791,13 +2955,16 @@ def _stream_episode_narrative_audio(sid: str, ep_num: int):
 
     ep_dir = config.DATA_DIR / "series" / sid / "episodes" / f"ep_{ep_num:03d}"
     ep_dir.mkdir(parents=True, exist_ok=True)
-    audio_path = ep_dir / f"episode_{ep_num:03d}_narrative.mp3"
-
+    narrative = storyteller.get_or_create_episode_narrative(sid, ep_num)
+    text = narrative.get("full_spoken_script") if narrative else ""
+    if not text:
+        raise HTTPException(404, "Narrative text not found")
+    import hashlib
+    tag = hashlib.sha1(text.encode("utf-8")).hexdigest()[:10]
+    audio_path = ep_dir / f"episode_{ep_num:03d}_narrative_{tag}.mp3"   # a new text gets new audio
     if not audio_path.is_file():
-        narrative = storyteller.get_or_create_episode_narrative(sid, ep_num)
-        text = narrative.get("full_spoken_script") if narrative else ""
-        if not text:
-            raise HTTPException(404, "Narrative text not found")
+        for old in ep_dir.glob(f"episode_{ep_num:03d}_narrative*.mp3"):
+            old.unlink(missing_ok=True)
         tts.synthesize_narrative_audio(text, voice_id, audio_path)
 
     if not audio_path.is_file():
@@ -2844,11 +3011,13 @@ def _generate_series_script(sid: str, body: dict = Body(...)):
         target_scenes = max(3, min(25, int(round(float(target_dur_min) * 60 / scene_duration))))
     else:
         target_scenes = int(body.get("target_scenes") or 12)
+    cast = [str(n)[:60] for n in (body.get("cast") or []) if str(n).strip()][:8]
     script = storyteller.generate_episode_script(
         sid, pitch,
         target_scenes=target_scenes,
         scene_duration=scene_duration,
-        target_duration_min=float(target_dur_min) if target_dur_min else None
+        target_duration_min=float(target_dur_min) if target_dur_min else None,
+        cast=cast, newcomer=bool(body.get("newcomer"))
     )
     if isinstance(script, dict) and script.get("error"):
         raise HTTPException(503, script["error"])
@@ -2871,9 +3040,45 @@ def _approve_series_episode(sid: str, ep_num: int, body: dict = Body(...)):
     return series_engine.start_episode_production(sid, ep_num, script)
 
 
+@app.post("/api/series/{sid}/episodes/{ep_num}/title-ideas")
+def _episode_title_ideas(sid: str, ep_num: int, body: dict | None = Body(None)):
+    """Titles for this episode from its story (studio/concepts.py). body: the synopsis and title as edited now."""
+    from studio import concepts
+    body = body or {}
+    s = memory.get_series(sid)
+    ep = memory.get_episode(sid, ep_num) if s else None
+    if not s or not ep:
+        raise HTTPException(404, "Episode not found")
+    return concepts.suggest_episode_titles(s, ep, str(body.get("summary") or "")[:1500], str(body.get("current") or "")[:120])
+
+
 @app.get("/api/series/{sid}/episodes/{ep_num}/status")
 def _get_episode_status(sid: str, ep_num: int):
     return series_engine.get_production_status(sid, ep_num)
+
+
+@app.get("/api/series/{sid}/productions")
+def _series_productions(sid: str):
+    """Episodes being made right now or stopped part-way, so the page can show their progress after a reload."""
+    return {"productions": series_engine.list_productions(sid)}
+
+
+@app.post("/api/series/{sid}/episodes/{ep_num}/resume")
+def _resume_series_episode(sid: str, ep_num: int):
+    res = series_engine.resume_episode_production(sid, ep_num)
+    if not res.get("ok"):
+        raise HTTPException(409, res.get("message") or "Could not resume")
+    return res
+
+
+@app.get("/api/series/{sid}/episodes/{ep_num}/scene/{idx}")
+def _stream_scene_preview(sid: str, ep_num: int, idx: int):
+    """A finished scene, to watch while the rest of the episode is still being made."""
+    p = config.DATA_DIR / "series" / sid / "episodes" / f"ep_{ep_num:03d}" / f"scene_{idx:02d}_final.mp4"
+    if not p.is_file() or not (config.DATA_DIR / "series" / sid / "episodes" / f"ep_{ep_num:03d}" / f"scene_{idx:02d}.json").is_file():
+        raise HTTPException(404, "This scene is not finished yet")
+    return FileResponse(p, media_type="video/mp4", content_disposition_type="inline",
+                        headers={"Accept-Ranges": "bytes", "Cache-Control": "no-cache"})
 
 
 @app.patch("/api/series/{sid}/episodes/{ep_num}")

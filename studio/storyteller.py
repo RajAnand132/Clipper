@@ -6,10 +6,35 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
-from studio import ai, config, formats, memory, tts
+from studio import ai, config, formats, memory, tts, usage
 
 log = logging.getLogger("peakcut.storyteller")
+
+# words spoken per second by the voices, pauses between lines included (measured: Hindi scenes 2.09 words/s)
+WORDS_PER_SEC = {"hi": 2.1, "en": 2.5, "es": 2.4, "fr": 2.4, "de": 2.2, "ja": 3.0}
+
+
+def words_for(seconds: float, lang: str) -> int:
+    """How many spoken words fill this many seconds in this language."""
+    return int(round(float(seconds) * WORDS_PER_SEC.get((lang or "en").lower(), 2.3)))
+
+
+def spoken_words(scene: dict) -> int:
+    """The words a scene's voices will say (its lines, else its 'Speaker: text' dialogue)."""
+    lines = [str(x.get("text") or "") for x in scene.get("lines") or []]
+    if not any(lines):
+        lines = [row.split(":", 1)[-1] for row in str(scene.get("dialogue") or "").splitlines()]
+    return sum(len(t.split()) for t in lines)
+
+
+def _length_rule(seconds: float, lang: str) -> str:
+    w = words_for(seconds, lang)
+    lines_lo, lines_hi = max(4, int(seconds / 9)), max(7, int(seconds / 5))
+    return (f"about {w} words in {lang.upper()} (between {int(w * 0.9)} and {int(w * 1.2)} words): the voices speak about "
+            f"{WORDS_PER_SEC.get(lang.lower(), 2.3)} words per second, so fewer words make a SHORTER video. Spread them over "
+            f"{lines_lo} to {lines_hi} lines")
 
 PITCH_SCHEMA = {
     "type": "ARRAY",
@@ -44,7 +69,10 @@ LINES_SCHEMA = {
         "properties": {
             "speaker": {"type": "STRING"},
             "text": {"type": "STRING"},
-            "emotion": {"type": "STRING"}
+            "emotion": {"type": "STRING"},
+            "sfx": {"type": "ARRAY", "items": {"type": "STRING"}},
+            "show": {"type": "ARRAY", "items": {"type": "OBJECT", "properties": {
+                "thing": {"type": "STRING"}, "how": {"type": "STRING"}}}}
         },
         "required": ["speaker", "text"]
     }
@@ -68,6 +96,9 @@ SCRIPT_SCHEMA = {
         "title": {"type": "STRING"},
         "synopsis": {"type": "STRING"},
         "unresolved_hook": {"type": "STRING"},
+        "walkthrough": {"type": "OBJECT", "properties": {
+            "why_this_episode": {"type": "STRING"}, "bridge_from_last": {"type": "STRING"},
+            "journey": {"type": "STRING"}, "next_teaser": {"type": "STRING"}}},
         "new_characters": {
             "type": "ARRAY",
             "items": {
@@ -98,7 +129,13 @@ SCRIPT_SCHEMA = {
                     "visual_prompt": {"type": "STRING"},
                     "lines": LINES_SCHEMA,
                     "shots": SHOTS_SCHEMA,
-                    "teaser": {"type": "BOOLEAN"}
+                    "teaser": {"type": "BOOLEAN"},
+                    "music": {"type": "STRING"},
+                    "set": {"type": "OBJECT", "properties": {
+                        "place": {"type": "STRING"}, "kit": {"type": "STRING"}, "era": {"type": "STRING"},
+                        "culture": {"type": "STRING"}, "time": {"type": "STRING"}, "weather": {"type": "STRING"},
+                        "mood": {"type": "STRING"}, "landmarks": {"type": "ARRAY", "items": {"type": "STRING"}},
+                        "location_name": {"type": "STRING"}}}
                 },
                 "required": ["scene_num", "duration_sec", "setting", "speaker", "dialogue", "visual_prompt"]
             }
@@ -149,7 +186,7 @@ def pitch_next_episodes(series_id: str) -> list[dict]:
     angles = fmt["story"]["pitch_types"]
     prompt = f"""You are the Lead Story Director for the series "{ctx.get('title')}".
 Genre: {ctx.get('genre')}
-{formats.story_brief(fmt)}
+{_brief_rule(ctx)}{_places_rule(ctx)}{formats.story_brief(fmt)}
 {lang_inst}
 
 EXISTING CHARACTERS:
@@ -173,7 +210,7 @@ Format output strictly according to the schema.
     models = ai.models() or ["gemini-2.5-flash", "gemini-3.5-flash-lite"]
     for m in models:
         try:
-            raw = ai.call(m, prompt, PITCH_SCHEMA, timeout=30)
+            raw = usage.studio_call(m, prompt, PITCH_SCHEMA, "Studio: episode ideas", ctx.get("title", ""), timeout=30)
             res = raw[0] if isinstance(raw, tuple) else raw
             if isinstance(res, list) and len(res) >= 2:
                 # Ensure ids are populated
@@ -227,9 +264,12 @@ def generate_episode_script(
     pitch_or_idea: dict | str,
     target_scenes: int = 12,
     scene_duration: int = 60,
-    target_duration_min: float | None = None
+    target_duration_min: float | None = None,
+    cast: list | None = None,
+    newcomer: bool = False
 ) -> dict:
-    """Generates the full scene-by-scene script with dialogues and 3D visual generation prompts for long-form videos."""
+    """Generates the full scene-by-scene script with dialogues and 3D visual generation prompts for long-form videos.
+    cast: the Vault characters this episode must use (each gets real lines); newcomer: introduce one new character."""
     ctx = memory.get_continuity_context(series_id)
     if not ctx:
         return {}
@@ -238,7 +278,17 @@ def generate_episode_script(
     lang = ctx.get("default_language", "en").lower()
     def_narrator_voice = tts.default_voice_for_lang(lang)
     char_map = {c["name"].lower(): c for c in chars}
-    char_desc = "\n".join([f"- {c['name']} (Voice: {c.get('voice_id', def_narrator_voice)}): Visual: {c.get('visual_anchor', '')}" for c in chars]) or "None yet."
+    char_desc = "\n".join([f"- {c['name']} ({c.get('species', '')}; {c.get('personality', '')}) (Voice: {c.get('voice_id', def_narrator_voice)}): Visual: {c.get('visual_anchor', '')}" for c in chars]) or "None yet."
+    cast = [str(n).strip() for n in (cast or []) if str(n).strip()]
+    cast_rule = ""
+    if cast:
+        cast_rule = ("\nCAST FOR THIS EPISODE (the user chose them): " + ", ".join(cast) + ".\n"
+                     "Every one of them MUST have meaningful spoken lines in at least two scenes and a clear part in the "
+                     "story. Other Vault characters may appear only when the story really needs them.\n")
+    if newcomer:
+        cast_rule += ("NEW CHARACTER: introduce exactly ONE new character who fits this story and the format (not in the "
+                      "Vault). Give them lines and a real part, and describe them in 'new_characters' (name, species, "
+                      "visual_anchor with colours tied to clothes or fur, personality, voice_id).\n")
 
     if isinstance(pitch_or_idea, dict):
         pitch_text = f"Title: {pitch_or_idea.get('title')}\nPremise: {pitch_or_idea.get('logline')}\nHook: {pitch_or_idea.get('hook')}"
@@ -263,7 +313,7 @@ def generate_episode_script(
     fmt = formats.resolve(memory.get_series(series_id))
     prompt = f"""You are the Lead Screenwriter & Visual Director for the YouTube series "{ctx.get('title')}".
 Genre: {ctx.get('genre')}
-{formats.story_brief(fmt)}
+{_brief_rule(ctx)}{_places_rule(ctx)}{formats.story_brief(fmt)}
 Aspect Ratio: {ctx.get('aspect_ratio', '16:9')}
 {lang_rule}
 
@@ -272,7 +322,7 @@ CHARACTER VAULT & VISUAL ANCHORS:
 
 EPISODE PREMISE:
 {pitch_text}
-
+{cast_rule}
 TASK:
 Write a complete, captivating, long-form YouTube episode script with EXACTLY {target_scenes} scenes (target duration: ~{target_min} minutes total).
 
@@ -283,12 +333,23 @@ MANDATORY RULES FOR LONG-FORM VIDEO & SCENE LENGTH:
 
 2. SUBSTANTIAL SPOKEN DIALOGUE & NARRATION (CRITICAL FOR 1-MINUTE SCENES):
    - The 'dialogue' field is the voiceover track. Spoken aloud, it MUST naturally last ~{scene_duration} seconds!
-   - Therefore, 'dialogue' CANNOT be a brief 1-line quip. Each scene MUST feature a substantial, multi-sentence narrative or character exchange (between 85 and 140 words in {lang.upper()}, approx 5 to 8 full sentences).
+   - Therefore, 'dialogue' CANNOT be a brief 1-line quip. Each scene MUST feature a substantial, multi-sentence narrative or character exchange ({_length_rule(scene_duration, lang)}).
    - For Narrator scenes: Provide evocative, atmospheric narrative descriptions that set up the environment, describe character thoughts, uncover clues, and build suspense or wonder.
    - For Character scenes: Provide extensive dialogue with expressive emotional reactions, lively conversational back-and-forth, humor, curiosity, and teamwork.
    - If a character is speaking, they can speak multiple sentences explaining their idea, reacting, asking questions, and advancing the scene.
 
 3. Assign the correct 'voice_id' for each speaker based on the character vault (default narrator voice: '{def_narrator_voice}').
+3c. 'set' on EVERY scene, describing where it happens so the 3D set fits the story:
+    {{"place": "temple courtyard", "kit": one of {_kit_list()} (pick the closest: inside a train is
+    train_interior, not station; an old mansion or its courtyard is haveli; a fair is mela), "era": ancient|modern|future, "culture": indian|western|japanese, "time": dawn|morning|noon|golden|
+    dusk|night|midnight, "weather": clear|overcast|rain|storm|fog|snow, "mood": one or two words,
+    "landmarks": 1-3 things seen there, "location_name": a short name for a place that may come back (e.g. "Dadi's
+    house", "Lord's", "the old temple"), the SAME name every time the story returns there}}.
+    Pick the time and weather that fit the moment (a scary scene at night in fog, a happy one in morning sun).
+3b. 'walkthrough' (the showrunner's notes, in the episode's language, 1-2 sentences each, specific to THIS episode and
+    its format, never generic): why_this_episode = why viewers will relate to it or care (the real-life feeling,
+    question, fear, history or lesson it touches); bridge_from_last = how it follows the previous episode (or, for the
+    first one, what it sets up); journey = what happens, briefly; next_teaser = what the ending sets up next.
 4. 'visual_prompt': Highly detailed image-generation prompt (in English) matching the VISUAL STYLE DNA above:
    - Must explicitly describe the characters in frame using their persistent visual anchors.
    - Specify spatial positioning (e.g., 'Character A on the left smiling, Character B on the right pointing...').
@@ -301,6 +362,21 @@ MANDATORY RULES FOR LONG-FORM VIDEO & SCENE LENGTH:
     Vary framing (wide, medium, close-up, detail). The first shot's visual_prompt equals 'visual_prompt'.
 4d. Set "teaser": true on the ONE scene that would make the best 45-second vertical teaser (the most gripping moment).
 4e. Set "music_mood" for the episode: one of calm|playful|wonder|lullaby|epic|horror|tension|emotional|upbeat|synth|chiptune|quirky|jazz_noir.
+    Each scene may set its own "music" from the same list when its feeling differs (a tense chase, a sad goodbye).
+4f. A line may list sound effects heard as it is said, in "sfx": any of door_creak, knock, car_engine, car_horn,
+    phone_ring, bell, thunder, wind_gust, clock_tick, bird, sparkle, heartbeat, horror_hit, whoosh, boing, pop,
+    firework, splash, dog_bark, dog_growl, cat_meow, cow_moo, lion_roar, duck_quack, goat_baa, horse_neigh,
+    elephant_trumpet, crow_caw, rooster, frog_croak, wolf_howl, snake_hiss, monkey, owl_hoot.
+    An animal character's own noises are written in its line as the sound itself ("भौं-भौं!", "म्याऊँ!", "Woof!"),
+    and the animation plays the real animal sound for them; stage directions go in brackets "(...)" and are not read.
+    Use them only where the story needs them (a knock at the door, a car arriving), at most two per scene.
+4g. The animation shows what the lines talk about. Write lines that name concrete things and happenings the viewer
+    can see (falling stars, rain, lightning, fireworks, a rainbow, the moon, birds, butterflies, magic sparkles,
+    wind, a ghost, a car, a bicycle, a ball, a cake, a gift, a box, a treasure chest, a book, a letter, a map, a
+    key, a phone, a clock, a lantern, a candle, a campfire, flowers, an apple, laddoos, honey, ice cream, an egg,
+    an umbrella, a drum, a crown, a kite, balloons, a glowing orb, a bell, a boat, a rocket).
+    A line may also say what to show in "show": [{{"thing": "kite", "how": "enter" or "bubble"}}]; "bubble" puts
+    it in a thought bubble (memories, wishes, imagination). At most two per scene.
 5. COMPLETE EPISODIC STORY ARC (DO NOT CUT OFF IN BETWEEN):
    - The episode MUST be a complete standalone adventure that resolves its main quest or mystery within these {target_scenes} scenes!
    - Scenes 1 to 3: The Setup & Inciting Incident (discovering the mystery or problem).
@@ -313,7 +389,7 @@ MANDATORY RULES FOR LONG-FORM VIDEO & SCENE LENGTH:
     models = ai.models() or ["gemini-2.5-flash", "gemini-3.5-flash-lite"]
     for m in models:
         try:
-            raw = ai.call(m, prompt, SCRIPT_SCHEMA, timeout=60)
+            raw = usage.studio_call(m, prompt, SCRIPT_SCHEMA, "Studio: episode script", ctx.get("title", ""), timeout=60)
             res = raw[0] if isinstance(raw, tuple) else raw
             if isinstance(res, dict) and "scenes" in res and len(res["scenes"]) >= 3:
                 # Ensure voice_ids, default camera motions, and target durations
@@ -329,7 +405,16 @@ MANDATORY RULES FOR LONG-FORM VIDEO & SCENE LENGTH:
                         s["camera_motion"] = "dolly_in"
                     if not s.get("duration_sec") or s.get("duration_sec") < 20:
                         s["duration_sec"] = float(scene_duration)
+                _lengthen_short_scenes(res, scene_duration, lang, ctx.get("title", ""), char_desc)
+                want = words_for(scene_duration, lang)
+                said = [spoken_words(x) for x in res["scenes"]]
+                res["length_check"] = {"target_sec": scene_duration * len(res["scenes"]),
+                                       "estimated_sec": round(sum(said) / WORDS_PER_SEC.get(lang, 2.3) + 2 * len(said)),
+                                       "short_scenes": [i + 1 for i, n in enumerate(said) if n < want * 0.75]}
                 res["narrative_walkthrough"] = build_narrative_walkthrough(series_id, res, ep_num=len(ctx.get("episodes", [])) + 1)
+                if cast:   # who the user chose, and anyone the AI still left without a line
+                    res["cast"] = cast
+                    res["cast_check"] = {"missing": missing_cast(res, cast)}
                 return res
         except Exception as e:
             log.warning("Storyteller script generation failed on model %s: %s", m, e)
@@ -507,7 +592,7 @@ def generate_single_scene(series_id: str, context: dict) -> dict:
 
     prompt = f"""You are the Lead Screenwriter & Visual Director for the 3D animated series "{ctx.get('title')}".
 Genre: {ctx.get('genre')}
-Global 3D Visual Style: {ctx.get('visual_style')}
+{_brief_rule(ctx)}{_places_rule(ctx)}Global 3D Visual Style: {ctx.get('visual_style')}
 Aspect Ratio: {ctx.get('aspect_ratio', '16:9')}
 {lang_rule}
 
@@ -527,7 +612,7 @@ Write Scene {target_scene_num} directly continuing the narrative arc and story e
 MANDATORY RULES:
 1. SCENE DURATION & DIALOGUE LENGTH:
    - Target duration: {int(target_dur)} seconds.
-   - The 'dialogue' is the spoken voiceover track. It MUST be substantial and take ~{int(target_dur)} seconds to speak aloud (between 85 and 140 words in {lang.upper()}, approx 5 to 8 full sentences).
+   - The 'dialogue' is the spoken voiceover track. It MUST be substantial and take ~{int(target_dur)} seconds to speak aloud ({_length_rule(target_dur, lang)}).
    - If Narrator: Provide rich atmospheric scene-setting, suspense, curiosity, and emotional storytelling.
    - If Character: Express vibrant personality, emotion, dialogue, teamwork, and reaction to the unfolding events.
 2. SPEAKER & VOICE:
@@ -543,7 +628,7 @@ MANDATORY RULES:
     models = ai.models() or ["gemini-2.5-flash", "gemini-3.5-flash-lite"]
     for m in models:
         try:
-            raw = ai.call(m, prompt, SINGLE_SCENE_SCHEMA, timeout=45)
+            raw = usage.studio_call(m, prompt, SINGLE_SCENE_SCHEMA, "Studio: one scene", ctx.get("title", ""), timeout=45)
             res = raw[0] if isinstance(raw, tuple) else raw
             if isinstance(res, dict) and res.get("dialogue") and res.get("visual_prompt"):
                 res["scene_num"] = target_scene_num
@@ -640,66 +725,119 @@ def _build_single_scene_fallback(
     }
 
 
-def build_narrative_walkthrough(series_id: str, script_or_ep: dict, ep_num: int | None = None) -> dict:
-    """Generates an editorial Director's Narrative Walkthrough for an episode.
+NARRATIVE_SCHEMA = {"type": "OBJECT", "properties": {
+    "why_this_episode": {"type": "STRING"}, "bridge_from_last": {"type": "STRING"},
+    "journey": {"type": "STRING"}, "next_teaser": {"type": "STRING"}},
+    "required": ["why_this_episode", "bridge_from_last", "journey", "next_teaser"]}
 
-    Explains:
-    1. Why this episode concept was chosen (market context & thematic motivation).
-    2. How it bridges from the previous episode (recap of previous hook).
-    3. What the current episode journey entails (character dynamics & plot points).
-    4. What the next episode will explore (foreshadowing based on the ending hook).
-    5. A full cohesive spoken voiceover script that can be synthesized into audio.
-    """
+# when no AI can write it: a "why" that fits the kind of show, not the same kids' line for every format
+WHY_BY_CATEGORY = {
+    "en": {"Kids & Family": "It turns a small everyday problem kids know into a fun adventure, with a feeling they recognise.",
+           "Horror & Thriller": "It plays on a fear everyone shares: something familiar that turns out not to be safe.",
+           "Documentary & Education": "It brings a real story from the past close, through the people who lived it.",
+           "Anime & Stylised": "It gives the heroes a challenge that tests what they believe in.",
+           "Cinematic Fiction": "It puts the characters in a choice viewers have faced themselves.",
+           "Faceless Channels": "It speaks to a struggle many viewers are going through right now."},
+    "hi": {"Kids & Family": "यह एपिसोड बच्चों की रोज़ की एक छोटी-सी परेशानी को मज़ेदार रोमांच में बदल देता है, जिससे वे खुद को जोड़ पाते हैं।",
+           "Horror & Thriller": "यह उस डर को छूता है जो हम सब जानते हैं: कोई जानी-पहचानी चीज़ जो अचानक सुरक्षित नहीं लगती।",
+           "Documentary & Education": "यह अतीत की एक सच्ची कहानी को उन लोगों के ज़रिए पास लाता है जिन्होंने उसे जिया।",
+           "Anime & Stylised": "यह हमारे नायकों के सामने ऐसी चुनौती रखता है जो उनके विश्वास की परीक्षा लेती है।",
+           "Cinematic Fiction": "यह किरदारों को ऐसे फ़ैसले के सामने खड़ा करता है जिसका सामना दर्शक खुद कर चुके हैं।",
+           "Faceless Channels": "यह उस संघर्ष की बात करता है जिससे आज बहुत से दर्शक गुज़र रहे हैं।"},
+}
+
+
+def _clean_walk(w) -> dict:
+    if not isinstance(w, dict):
+        return {}
+    keys = ("why_this_episode", "bridge_from_last", "journey", "next_teaser")
+    return {k: str(w.get(k) or "").strip()[:600] for k in keys if str(w.get(k) or "").strip()}
+
+
+def _walk_from_ai(s: dict, script_or_ep: dict, ep_num: int, prev_ep: dict | None) -> dict:
+    """One AI call that writes the four notes from the episode itself (for episodes made before the script writer
+    wrote them)."""
+    if not ai.ready():
+        return {}
+    fmt = formats.resolve(s)
+    lang = (s.get("default_language") or "en").lower()
+    lines = []
+    for sc in (script_or_ep.get("scenes") or script_or_ep.get("script") or [])[:10]:
+        for ln in (sc.get("lines") or [])[:2]:
+            if ln.get("text"):
+                lines.append(f"{ln.get('speaker', '')}: {ln['text']}")
+    prompt = f"""You are the showrunner of the YouTube series "{s.get('title', '')}" ({fmt['name']}, {fmt['category']};
+audience {fmt['audience']}; tone: {fmt['story']['tone']}).
+Write short notes about Episode {ep_num}: "{script_or_ep.get('title', '')}", in the language "{lang}"{' (Devanagari)' if lang == 'hi' else ''}.
+What happens: {str(script_or_ep.get('synopsis') or script_or_ep.get('summary') or '')[:900]}
+Some lines: {' | '.join(lines)[:900] or '-'}
+Ending / hook: {script_or_ep.get('unresolved_hook') or '-'}
+Previous episode: {(f"{prev_ep.get('title', '')}: {str(prev_ep.get('summary', ''))[:300]} (hook: {prev_ep.get('unresolved_hook', '')})") if prev_ep else 'none, this is the first episode'}
+
+1-2 sentences each, specific to THIS episode and format, never generic: why_this_episode (why viewers will relate
+to it or care: the real-life feeling, question, fear, history or lesson it touches), bridge_from_last, journey,
+next_teaser.
+"""
+    for m in ai.models() or []:
+        try:
+            raw = usage.studio_call(m, prompt, NARRATIVE_SCHEMA, "Studio: director's notes", s.get("title", ""),
+                                    timeout=30, temperature=0.7)
+            w = _clean_walk(raw[0] if isinstance(raw, tuple) else raw)
+            if len(w) >= 3:
+                return w
+        except Exception as e:  # noqa: BLE001
+            log.warning("director's notes from %s failed: %s", m, e)
+    return {}
+
+
+def build_narrative_walkthrough(series_id: str, script_or_ep: dict, ep_num: int | None = None) -> dict:
+    """The Director's Narrative for an episode: why it was chosen (what makes it relatable), how it follows the last
+    one, what happens, and what comes next, plus the same as one spoken text.
+
+    Written for THIS episode: by the script writer along with the script (its 'walkthrough'), else by one AI call
+    from the episode, else from the episode's own facts with a 'why' that fits the kind of show."""
     s = memory.get_series(series_id) or {}
     series_title = s.get("title", "3D Series")
     lang = (s.get("default_language") or "en").lower()
     episodes = s.get("episodes", [])
+    fmt = formats.resolve(s)
 
     current_ep_num = ep_num or script_or_ep.get("episode_num") or (len(episodes) + 1)
     title = script_or_ep.get("title") or f"Episode {current_ep_num}"
-    synopsis = script_or_ep.get("synopsis") or script_or_ep.get("summary") or "A thrilling 3D adventure."
-    hook = script_or_ep.get("unresolved_hook") or "A mysterious sound echoes from the distant forest."
-
-    # Identify previous episode
+    synopsis = script_or_ep.get("synopsis") or script_or_ep.get("summary") or ""
+    hook = script_or_ep.get("unresolved_hook") or ""
     prev_ep = None
     if current_ep_num > 1 and episodes:
-        prev_ep = next((e for e in episodes if e.get("episode_num") == current_ep_num - 1), episodes[-1])
+        prev_ep = next((e for e in episodes if e.get("episode_num") == current_ep_num - 1), None)
 
-    if lang == "hi":
-        # Hindi narrative walkthrough
-        if prev_ep:
-            prev_hook = prev_ep.get("unresolved_hook") or "पिछले एपिसोड का अनसुलझा रहस्य"
-            prev_bridge = f"पिछले एपिसोड {prev_ep.get('episode_num', 1)} ({prev_ep.get('title', '')}) में हमने देखा था कि '{prev_hook}'। आज की कहानी सीधे उसी रोमांचक मोड़ से आगे बढ़ती है।"
-        else:
-            prev_bridge = f"यह '{series_title}' सीरीज़ का पहला एपिसोड है, जो हमारे प्यारे किरदारों और उनकी जादुई दुनिया को दर्शकों के सामने जीवंत करता है।"
-
-        context_motivation = f"इस एपिसोड को इसलिए चुना गया ताकि बच्चों को टीमवर्क, दयालुता और समस्याओं को समझदारी से सुलझाने की सीख मिले, साथ ही 3D एनीमेशन का भरपूर मज़ा भी।"
-        current_journey = f"इस एपिसोड में, {synopsis}। हमारे किरदार मिलकर हर चुनौती का हँसते-खेलते सामना करते हैं।"
-        next_teaser = f"एपिसोड के अंत में '{hook}' का एक नया मोड़ आता है, जो अगले एपिसोड में दोस्तों को एक नई रहस्यमयी खोज की ओर ले जाएगा।"
-
-        full_spoken = f"नमस्ते! '{series_title}' के एपिसोड {current_ep_num}: '{title}' के डायरेक्टर नैरेटिव में आपका स्वागत है। {prev_bridge} {context_motivation} {current_journey} {next_teaser} आशा है कि आपको यह एपिसोड बहुत पसंद आएगा!"
+    w = _clean_walk(script_or_ep.get("walkthrough")) or _walk_from_ai(s, script_or_ep, current_ep_num, prev_ep)
+    hi = lang == "hi"
+    why = w.get("why_this_episode") or WHY_BY_CATEGORY["hi" if hi else "en"].get(fmt["category"]) or ""
+    if w.get("bridge_from_last"):
+        bridge = w["bridge_from_last"]
+    elif prev_ep:
+        bridge = (f"पिछले एपिसोड '{prev_ep.get('title', '')}' के अंत में: {prev_ep.get('unresolved_hook') or prev_ep.get('summary', '')}"
+                  if hi else f"Last time, in '{prev_ep.get('title', '')}': {prev_ep.get('unresolved_hook') or prev_ep.get('summary', '')}")
     else:
-        # English narrative walkthrough
-        if prev_ep:
-            prev_hook = prev_ep.get("unresolved_hook") or "the lingering mystery from our previous adventure"
-            prev_bridge = f"In Episode {prev_ep.get('episode_num', 1)} ('{prev_ep.get('title', '')}'), our story left off with: '{prev_hook}'. This episode directly picks up the trail from that cliffhanger."
-        else:
-            prev_bridge = f"As the premiere episode of '{series_title}', this adventure introduces our main characters, establishes the vibrant 3D world, and sets our overarching franchise quest into motion."
-
-        context_motivation = f"We chose this episode direction to highlight curiosity, cooperative problem-solving, and heartwarming friendship, giving young audiences a thrilling yet positive story experience."
-        current_journey = f"In this chapter, {synopsis}. Across each scene, our characters combine their distinct personalities to overcome challenges and discover something extraordinary."
-        next_teaser = f"The story concludes with an exciting open hook: '{hook}'. In the upcoming episode, this unexpected clue propels our team into their next big adventure!"
-
-        full_spoken = f"Welcome to the Showrunner's Walkthrough for Episode {current_ep_num}: '{title}' of {series_title}. {prev_bridge} {context_motivation} {current_journey} {next_teaser} Enjoy the journey!"
-
+        bridge = (f"'{series_title}' का पहला एपिसोड: यहीं से कहानी शुरू होती है।" if hi
+                  else f"The first episode of '{series_title}': where the story begins.")
+    journey = w.get("journey") or synopsis
+    teaser = w.get("next_teaser") or hook
+    if hi:
+        spoken = (f"नमस्ते! '{series_title}' के एपिसोड {current_ep_num}, '{title}' में आपका स्वागत है। {bridge} "
+                  f"{why} {journey} {teaser}").strip()
+    else:
+        spoken = (f"Welcome to Episode {current_ep_num} of {series_title}: '{title}'. {bridge} {why} {journey} "
+                  f"{teaser}").strip()
     return {
         "episode_num": current_ep_num,
         "title": title,
-        "context_motivation": context_motivation,
-        "previous_bridge": prev_bridge,
-        "current_journey": current_journey,
-        "next_teaser": next_teaser,
-        "full_spoken_script": full_spoken
+        "context_motivation": why,
+        "previous_bridge": bridge,
+        "current_journey": journey,
+        "next_teaser": teaser,
+        "full_spoken_script": re.sub(r"\s+", " ", spoken).replace("।।", "।"),
+        "written_by": "script" if script_or_ep.get("walkthrough") else ("ai" if w else "template"),
     }
 
 
@@ -708,8 +846,9 @@ def get_or_create_episode_narrative(series_id: str, ep_num: int) -> dict:
     ep = memory.get_episode(series_id, ep_num)
     if not ep:
         return {}
-    if ep.get("narrative_walkthrough"):
-        return ep["narrative_walkthrough"]
+    nw = ep.get("narrative_walkthrough")
+    if nw and nw.get("written_by") in ("script", "ai"):
+        return nw
     walkthrough = build_narrative_walkthrough(series_id, ep, ep_num)
     ep["narrative_walkthrough"] = walkthrough
     memory.add_episode(series_id, ep)
@@ -973,3 +1112,85 @@ def _sync_legacy_fields(s: dict) -> None:
         elif shots[0]["visual_prompt"].strip() != s["visual_prompt"].strip():
             shots.insert(0, {"visual_prompt": s["visual_prompt"], "camera_motion": s.get("camera_motion", "")})
         s["shots"] = shots
+
+
+def missing_cast(script: dict, cast: list) -> list:
+    """The chosen characters who got no line in the script."""
+    said = set()
+    for sc in script.get("scenes", []) or []:
+        for ln in sc.get("lines") or []:
+            said.add(str(ln.get("speaker") or "").strip().lower())
+        if sc.get("speaker"):
+            said.add(str(sc["speaker"]).strip().lower())
+        for row in str(sc.get("dialogue") or "").splitlines():
+            if ":" in row:
+                said.add(row.split(":", 1)[0].strip().lower())
+    return [n for n in cast if n.strip().lower() not in said]
+
+
+LENGTHEN_SCHEMA = {"type": "OBJECT", "properties": {"scenes": {"type": "ARRAY", "items": {"type": "OBJECT", "properties": {
+    "scene_num": {"type": "INTEGER"},
+    "lines": {"type": "ARRAY", "items": {"type": "OBJECT", "properties": {
+        "speaker": {"type": "STRING"}, "text": {"type": "STRING"}, "emotion": {"type": "STRING"}},
+        "required": ["speaker", "text"]}}},
+    "required": ["scene_num", "lines"]}}}, "required": ["scenes"]}
+
+
+def _lengthen_short_scenes(script: dict, scene_duration: float, lang: str, series_title: str, char_desc: str) -> None:
+    """Scenes whose lines are too few for the chosen scene length (an AI often writes half) get their lines
+    extended by one more AI call: same story, same speakers, more back-and-forth and description."""
+    want = words_for(scene_duration, lang)
+    scenes = script.get("scenes") or []
+    short = [sc for sc in scenes if spoken_words(sc) < want * 0.8]
+    if not short or not ai.ready():
+        return
+    rows = [{"scene_num": sc.get("scene_num") or i + 1, "setting": sc.get("setting", ""),
+             "lines": [{"speaker": x.get("speaker"), "text": x.get("text"), "emotion": x.get("emotion", "")}
+                       for x in sc.get("lines") or []] or [{"speaker": sc.get("speaker", "Narrator"), "text": sc.get("dialogue", "")}]}
+            for i, sc in enumerate(scenes) if sc in short]
+    prompt = f"""These scenes of the series "{series_title}" are too short. Each must be spoken for about
+{int(scene_duration)} seconds, which is about {want} words in {lang.upper()} (the voices speak about
+{WORDS_PER_SEC.get(lang, 2.3)} words per second). Rewrite each scene's lines to about {want} words in total.
+Keep its story, events, order, speakers and language exactly; add natural back-and-forth, reactions, questions,
+feelings and narrator description. Speakers may only be the ones already in the scene, the Narrator, or these:
+{char_desc}
+Use "emotion" from calm|happy|excited|sad|scared|angry|whisper|mysterious|surprised.
+
+SCENES:
+{json.dumps(rows, ensure_ascii=False)[:12000]}
+"""
+    for m in ai.models() or []:
+        try:
+            raw = usage.studio_call(m, prompt, LENGTHEN_SCHEMA, "Studio: lengthen scenes", series_title, timeout=90,
+                                    temperature=0.6)
+            res = raw[0] if isinstance(raw, tuple) else raw
+            longer = {int(x.get("scene_num") or 0): x.get("lines") or [] for x in (res or {}).get("scenes", [])}
+            for i, sc in enumerate(scenes):
+                new = [x for x in longer.get(int(sc.get("scene_num") or i + 1), []) if str(x.get("text") or "").strip()]
+                if new and sum(len(str(x["text"]).split()) for x in new) > spoken_words(sc):
+                    sc["lines"] = new
+                    _sync_legacy_fields(sc)
+            return
+        except Exception as e:  # noqa: BLE001
+            log.warning("lengthening scenes with %s failed: %s", m, e)
+
+
+def _brief_rule(ctx: dict) -> str:
+    """The creator's own concept for the series (pasted when it was created): every idea and script follows it."""
+    b = str(ctx.get("brief") or "").strip()
+    return f"SERIES CONCEPT FROM THE CREATOR (follow its world, characters, tone and facts):\n{b[:4000]}\n" if b else ""
+
+
+
+def _places_rule(ctx: dict) -> str:
+    """Places the series already has (Location Vault): the story reuses their exact names when it goes back there."""
+    names = [n for n in (ctx.get("locations") or []) if n][:30]
+    return ("KNOWN PLACES of this series (when a scene happens in one of them, use its exact name as the set's "
+            "location_name): " + "; ".join(names) + "\n") if names else ""
+
+
+
+def _kit_list() -> str:
+    """Every set the 3D studio can build (studio/anim3d/sets.py), for the script writer's 'kit'."""
+    from studio.anim3d import sets as _sets
+    return "|".join(_sets.KITS)

@@ -53,7 +53,7 @@ _MOVES_DOC = ["dolly_in", "pan_right", "pan_left", "dolly_out", "tilt_down"]
 
 def _f(id, name, emoji, category, dimension, description, *, style, negative="", grade=_G_NONE,
        moves=_MOVES_GENTLE, shot_sec=5.0, transition="fade", narrator=_NARR_WARM, rate="+0%", pitch="+0Hz",
-       music="calm", ambience="", music_db=-20, caption="b-hormozi", caption_pos=0.89, narration="mixed",
+       music="calm", ambience="", music_db=-12, caption="b-hormozi", caption_pos=0.89, narration="mixed",
        tone="", structure=None, pitch_types=None, audience="general", aspect="16:9", scene_sec=40,
        examples=""):
     return {
@@ -77,6 +77,16 @@ def _f(id, name, emoji, category, dimension, description, *, style, negative="",
 
 FORMATS: dict[str, dict] = {f["id"]: f for f in [
     # ------------------------------------------------------------------ kids & family animation
+    _f("chhota_bheem", "Chhota Bheem (Dholakpur 2D/3D Cartoon)", "🥋", "Kids & Family", "2d",
+       "Vibrant Indian 2D/3D cartoon adventures in Dholakpur with Chhota Bheem, Chutki, Raju, Jaggu, and Kalia. High-energy comedy, teamwork, and heroic fun.",
+       style="vibrant 2D/3D Indian cartoon animation style, Chhota Bheem aesthetic, bold clean outlines, cel shading, colorful Dholakpur village, bright primary colors, TV animation film still",
+       negative="photorealistic, real human photo, gloomy, dark, text, watermark, blurry",
+       grade=_G_VIBRANT, moves=_MOVES_DYNAMIC, shot_sec=4.0, music="playful",
+       narrator=_NARR_WARM, rate="+6%", pitch="+0Hz", caption="b-bounce", narration="dialogue",
+       tone="Heroic, hilarious, high-energy Indian cartoon banter, delicious laddoos, fast-paced friendship adventures.",
+       structure=["Dholakpur festival/laddoo hook", "Trouble or rival challenge appears", "Bheem and friends assemble", "Clever plan & action feat", "Triumphant laddoo feast", "Laughs and next adventure teaser"],
+       pitch_types=["dholakpur_adventure", "laddoo_mystery", "village_heroics"], scene_sec=35,
+       examples="laddoo thief, village fair, jungle rescue, friendly wrestling match"),
     _f("kids_3d", "3D Kids Cartoon", "🧸", "Kids & Family", "3d",
        "Bright, glossy 3D cartoon episodes for kids, with a recurring cast (RooRoo / Cocomelon style energy).",
        style="high-gloss 3D Pixar toy CGI, cute chibi proportions, octane render, soft volumetric lighting, vibrant primary colors, 8k",
@@ -107,7 +117,7 @@ FORMATS: dict[str, dict] = {f["id"]: f for f in [
              "hand-painted texture, cozy",
        negative="harsh lighting, scary, photorealistic, text, watermark",
        grade=_G_DREAM, moves=["dolly_in", "pan_right", "dolly_in", "pan_left"], shot_sec=8.0, transition="fadeblack",
-       narrator=_NARR_SOFT, rate="-12%", pitch="-2Hz", music="lullaby", ambience="night", music_db=-18,
+       narrator=_NARR_SOFT, rate="-12%", pitch="-2Hz", music="lullaby", ambience="night", music_db=-10,
        caption="b-minimal", narration="narrated", audience="kids 2-8",
        tone="Calm, slow, kind, repetitive soothing phrases, no conflict that would scare a child, ends with sleep.",
        structure=["Gentle opening", "A small wish", "A quiet journey", "A kind discovery", "Coming home", "Goodnight"],
@@ -147,7 +157,7 @@ FORMATS: dict[str, dict] = {f["id"]: f for f in [
              "35mm film grain, unsettling atmosphere, photorealistic",
        negative="bright, cheerful, cartoon, cute, text, watermark, gore",
        grade=_G_HORROR, moves=_MOVES_HORROR, shot_sec=5.5, transition="fadeblack", narrator=_NARR_DEEP,
-       rate="-8%", pitch="-4Hz", music="horror", ambience="wind", music_db=-17, caption="b-minimal",
+       rate="-8%", pitch="-4Hz", music="horror", ambience="wind", music_db=-9, caption="b-minimal",
        caption_pos=0.86, narration="mixed", audience="teens & adults",
        tone="Slow-burn dread, sensory detail (sounds, cold, smells), short sentences at scary moments, "
             "never explain the monster fully, a final twist. No gore.",
@@ -160,7 +170,7 @@ FORMATS: dict[str, dict] = {f["id"]: f for f in [
              "photorealistic, film grain",
        negative="people smiling, cartoon, bright colors, text, watermark, gore",
        grade=_G_HORROR, moves=_MOVES_HORROR, shot_sec=6.5, transition="fadeblack", narrator=_NARR_DEEP,
-       rate="-6%", pitch="-3Hz", music="horror", ambience="rain", music_db=-19, caption="b-minimal",
+       rate="-6%", pitch="-3Hz", music="horror", ambience="rain", music_db=-11, caption="b-minimal",
        narration="narrated", audience="teens & adults",
        tone="First person ('I'), confessional, realistic details (dates, places), builds slowly, ends unresolved.",
        structure=["'This happened to me...' hook", "Background", "First strange sign", "It gets worse",
@@ -187,7 +197,7 @@ FORMATS: dict[str, dict] = {f["id"]: f for f in [
        "Documentary narration over cinematic historical recreations.",
        style="cinematic historical recreation, epic wide shot, period-accurate costumes and architecture, "
              "dramatic natural light, photorealistic, documentary still",
-       grade=_G_DOC, moves=_MOVES_DOC, shot_sec=6.0, narrator=_NARR_DEEP, rate="-2%", music="epic", music_db=-22,
+       grade=_G_DOC, moves=_MOVES_DOC, shot_sec=6.0, narrator=_NARR_DEEP, rate="-2%", music="epic", music_db=-14,
        caption="b-clean", narration="narrated", audience="general",
        tone="Authoritative, factual, vivid scene-setting, surprising facts, no invented dates or numbers.",
        structure=["Shocking fact hook", "Context", "Key figures", "Turning point", "Consequences", "Legacy today"],
@@ -207,7 +217,7 @@ FORMATS: dict[str, dict] = {f["id"]: f for f in [
        style="clean 3D isometric illustration, soft studio lighting, bright infographic style, minimal background, "
              "high detail",
        grade=_G_VIBRANT, moves=_MOVES_DYNAMIC, shot_sec=3.5, transition="cut", narrator=_NARR_BRIGHT, rate="+6%",
-       music="upbeat", music_db=-22, caption="b-hormozi", narration="narrated",
+       music="upbeat", music_db=-14, caption="b-hormozi", narration="narrated",
        tone="Curious, energetic, one idea per scene, analogies, 'but here is the crazy part' turns.",
        structure=["Big question hook", "Simple explanation", "Surprising detail", "Real example", "Mind-blown fact",
                   "Recap + question to comments"],
@@ -237,6 +247,16 @@ FORMATS: dict[str, dict] = {f["id"]: f for f in [
        grade=_G_WARM, moves=_MOVES_GENTLE, shot_sec=5.0, music="epic", caption="b-clean", narration="mixed",
        tone="Wonder, prophecy, loyalty, a clear quest and a cost to magic.",
        pitch_types=["quest", "prophecy", "new_ally"], scene_sec=45),
+    _f("sports_drama", "Sports Drama", "🏏", "Cinematic Fiction", "3d",
+       "Matches, rivalries and comebacks told as an animated drama: the stadium, the tension, the last ball.",
+       style="animated 3D sports drama, packed stadium, floodlights, players in team kits, dramatic match moments, "
+             "vivid colours, cinematic",
+       grade=_G_VIBRANT, moves=_MOVES_DYNAMIC, shot_sec=4.0, music="epic", music_db=-10, caption="b-mrbeast",
+       narration="mixed", audience="sports fans, teens & adults",
+       tone="Pressure, momentum swings, team spirit, a hero moment, the crowd's roar; real tension, clear stakes.",
+       structure=["The stakes", "Early setback", "Fightback", "Turning point", "The final push", "Victory or heartbreak"],
+       pitch_types=["comeback", "rivalry", "underdog"], scene_sec=40,
+       examples="a last-day Test win, a final-over chase, an underdog team's first trophy"),
     _f("photoreal_drama", "Cinematic Drama", "🎭", "Cinematic Fiction", "photoreal",
        "Live-action style drama with realistic people.",
        style="cinematic live-action film still, photorealistic people, natural golden hour lighting, 35mm lens bokeh, "
@@ -258,12 +278,59 @@ FORMATS: dict[str, dict] = {f["id"]: f for f in [
        style="cinematic dramatic photograph, lone figure, mountain summit or storm, epic sky, high contrast, "
              "moody, photorealistic",
        grade=_G_CINE + ",eq=saturation=0.8", moves=["dolly_in", "dolly_in", "pan_right", "creep_in"], shot_sec=5.0,
-       narrator=_NARR_DEEP, rate="-5%", pitch="-3Hz", music="emotional", music_db=-18, caption="b-mrbeast",
+       narrator=_NARR_DEEP, rate="-5%", pitch="-3Hz", music="emotional", music_db=-10, caption="b-mrbeast",
        narration="narrated", audience="adults",
        tone="Direct 'you' address, short powerful sentences, a story or quote, a call to action.",
        structure=["Hard truth hook", "The struggle", "Story or quote", "The lesson", "What to do today", "Final line"],
        pitch_types=["discipline", "stoic_lesson", "comeback_story"], scene_sec=35, aspect="9:16"),
 ]}
+
+
+# One-click looks for the New Series dialog, per family of formats. The format's own look always comes first.
+LOOKS = {
+    "Kids & Family": [
+        ("🧸", "Glossy toy 3D", "high-gloss 3D toy CGI, cute rounded proportions, soft lighting, vibrant primary colors"),
+        ("🌈", "Pastel storybook", "soft pastel 3D storybook animation, gentle lighting, rounded shapes, cosy colors"),
+        ("🌞", "Sunny village", "bright sunny 3D cartoon village, warm colors, clean shapes, cheerful lighting"),
+        ("🌙", "Bedtime glow", "dreamy night-time 3D cartoon, warm lantern glow, stars, soft blues"),
+    ],
+    "Anime & Stylised": [
+        ("⚔️", "Anime action", "3D anime style, bold colors, dynamic lighting, expressive characters"),
+        ("🌸", "Soft slice-of-life", "soft anime style, pastel sky, gentle sunlight, calm everyday scenes"),
+        ("👾", "Retro pixel", "retro pixel-art look, limited bright palette, chunky shapes"),
+        ("🧱", "Clay stop-motion", "clay stop-motion look, handmade textures, warm studio lighting"),
+    ],
+    "Horror & Thriller": [
+        ("👻", "Haunted night", "dark haunted night, cold blue moonlight, fog, deep shadows, desaturated"),
+        ("🕯️", "Candle-lit dread", "candle-lit interiors, warm flicker against black shadows, dust, unsettling quiet"),
+        ("🌲", "Folk horror forest", "misty old forest at dusk, twisted trees, muted greens and greys, eerie silence"),
+        ("📼", "Found footage", "grainy found-footage look, harsh torch light, dark corners, handheld feel"),
+    ],
+    "Documentary & Education": [
+        ("🏛️", "Epic history", "epic historical scenes, golden hour light, ancient architecture, cinematic"),
+        ("💡", "Clean explainer", "clean bright 3D explainer look, simple shapes, clear colors, studio light"),
+        ("🔱", "Mythic glow", "mythic 3D scenes, golden godrays, glowing temples, rich saffron and blue"),
+        ("🔎", "Dark case file", "dark investigative look, cold desk light, maps and files, muted tones"),
+    ],
+    "Cinematic Fiction": [
+        ("🎬", "Cinematic drama", "cinematic 3D drama, natural golden hour light, warm tones, shallow focus"),
+        ("🚀", "Sci-fi neon", "sci-fi 3D world, neon lights, metal corridors, cool blue haze"),
+        ("🐉", "Fantasy epic", "fantasy 3D world, castles and mountains, magical glow, rich colors"),
+        ("😂", "Bright comedy", "bright punchy 3D comedy look, saturated colors, clean sets"),
+    ],
+    "Faceless Channels": [
+        ("🔥", "Epic motivation", "epic dramatic skies, lone figure, high contrast, moody light"),
+        ("🌅", "Calm wisdom", "calm sunrise landscapes, soft warm light, quiet and spacious"),
+        ("🏙️", "City grind", "night city streets, neon reflections, rain, focused mood"),
+    ],
+}
+
+
+def looks_for(fmt: dict) -> list[dict]:
+    """The format's own look, then the other looks of its family."""
+    own = {"emoji": fmt["emoji"], "label": fmt["name"], "style": fmt["visual"]["style"]}
+    rest = [{"emoji": e, "label": l, "style": st} for e, l, st in LOOKS.get(fmt["category"], [])]
+    return [own] + rest
 
 
 def list_formats() -> list[dict]:
@@ -273,6 +340,7 @@ def list_formats() -> list[dict]:
         "dimension": f["dimension"], "description": f["description"], "audience": f["audience"],
         "aspect_ratio": f["aspect_ratio"], "visual_style": f["visual"]["style"],
         "narration": f["story"]["narration"], "music": f["sound"]["music"], "examples": f.get("examples", ""),
+        "looks": looks_for(f),
     } for f in FORMATS.values()]
 
 
@@ -331,4 +399,11 @@ def story_brief(fmt: dict) -> str:
             f"TONE & RULES: {st['tone']}\n"
             f"VOICE MODE: {mode}\n"
             f"STORY STRUCTURE (spread across the scenes in order): {' -> '.join(st['structure'])}\n"
-            f"VISUAL STYLE DNA: {fmt['visual']['style']}")
+            f"VISUAL STYLE DNA: {fmt['visual']['style']}"
+            + ("\nANIMATION: every scene is ACTED by animated 3D cartoon characters, so write for performance: give "
+               "EVERY line an 'emotion' (happy, excited, surprised, sad, angry, scared, whisper, mysterious, calm); "
+               "greetings make characters wave, excitement makes them bounce, a happy last line makes everyone jump. "
+               "Name the place in 'setting' with plain words: forest, autumn forest, village, market, farm, beach, "
+               "snow, home/room, school, space; add 'night' or 'evening' when it is dark. Keep each scene to the "
+               "2-4 characters who are actually there."
+               if fmt.get("render", "anim3d") == "anim3d" else ""))

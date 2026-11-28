@@ -62,7 +62,8 @@ def stitch_scenes(
     out_mp4: Path,
     transition: str = "fade",
     transition_dur: float = 0.5,
-    bgm_path: Path | None = None
+    bgm_path: Path | None = None,
+    on_frac=None
 ) -> bool:
     """Stitches N scene videos into a continuous long video.
     For long-form episodes (multi-minute videos), uses fast, lossless concat demuxer.
@@ -121,13 +122,15 @@ def stitch_scenes(
     
     cmd = ["ffmpeg", "-y", "-v", "error", *inputs, "-filter_complex", fc,
            "-map", f"[{last_v}]", "-map", f"[{last_a}]",
-           "-c:v", "libx264", "-preset", "fast", "-crf", "20",
+           "-c:v", "libx264", "-preset", "fast", "-crf", "20", "-pix_fmt", "yuv420p",  # plays everywhere
+           "-maxrate", "8M", "-bufsize", "16M",
            "-c:a", "aac", "-b:a", "192k",
            "-movflags", "+faststart",
            str(out_mp4)]
 
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, creationflags=NO_WINDOW, timeout=600)
+        from studio import progress as prog
+        p = prog.ffmpeg(cmd, max(1.0, sum(durations) - transition_dur * (len(durations) - 1)), on_frac, timeout=600)
         if p.returncode == 0 and out_mp4.is_file() and out_mp4.stat().st_size > 1000:
             return True
     except Exception as e:
@@ -154,7 +157,7 @@ def cut_teaser_short(long_video_path: Path, out_short_path: Path, max_dur: float
         "-ss", "0", "-t", f"{dur:.2f}",
         "-i", str(long_video_path),
         "-vf", vf,
-        "-c:v", "libx264", "-preset", "fast", "-crf", "21",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "21", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "160k",
         str(out_short_path)
     ]

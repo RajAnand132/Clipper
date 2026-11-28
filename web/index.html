@@ -1571,6 +1571,256 @@
       font-weight: 600
     }
 
+    /* episode production panel: overall bar, what is happening now, every scene, the final steps, timers */
+    .pp {
+      background: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px
+    }
+
+    .pp-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap
+    }
+
+    .pp-head h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 2px 0 0
+    }
+
+    .pp-kicker {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--brand-deep);
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .pp-nums {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      text-align: right
+    }
+
+    .pp-num b {
+      display: block;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      font-variant-numeric: tabular-nums
+    }
+
+    .pp-num span {
+      font-size: 11px;
+      color: var(--faint);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .03em
+    }
+
+    .pp-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: var(--line);
+      overflow: hidden
+    }
+
+    .pp-bar i {
+      display: block;
+      height: 100%;
+      background: var(--brand);
+      border-radius: 999px;
+      transition: width .5s ease
+    }
+
+    .pp-bar.sm {
+      height: 6px
+    }
+
+    .pp-now {
+      background: #fff;
+      border: 1px solid var(--brand-line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .pp-now-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text)
+    }
+
+    .pp-now-top small {
+      font-weight: 500;
+      color: var(--dim);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap
+    }
+
+    .pp-list {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden
+    }
+
+    .pp-row {
+      display: grid;
+      grid-template-columns: 26px 74px minmax(0, 1fr) 150px 104px 34px;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      font-size: 12.5px;
+      border-top: 1px solid var(--line)
+    }
+
+    .pp-row:first-child {
+      border-top: 0
+    }
+
+    .pp-row.on {
+      background: var(--brand-soft)
+    }
+
+    .pp-row .pp-ic {
+      text-align: center
+    }
+
+    .pp-row .pp-name {
+      font-weight: 700;
+      color: var(--text)
+    }
+
+    .pp-row .pp-set {
+      color: var(--dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .pp-row .pp-st {
+      color: var(--dim);
+      display: flex;
+      flex-direction: column;
+      gap: 4px
+    }
+
+    .pp-row.done .pp-st,
+    .pp-row.cached .pp-st {
+      color: var(--good)
+    }
+
+    .pp-row.failed .pp-st {
+      color: var(--bad)
+    }
+
+    .pp-row .pp-t {
+      text-align: right;
+      color: var(--dim);
+      font-variant-numeric: tabular-nums
+    }
+
+    .pp-row.waiting {
+      color: var(--faint)
+    }
+
+    .pp-row.waiting .pp-name,
+    .pp-row.waiting .pp-set {
+      color: var(--faint)
+    }
+
+    .pp-err {
+      grid-column: 3 / -1;
+      color: var(--bad);
+      font-size: 11.5px
+    }
+
+    .pp-mini {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      border: 1px solid var(--brand-line);
+      background: var(--brand-soft);
+      border-radius: 12px;
+      font-size: 12.5px;
+      color: var(--text)
+    }
+
+    .pp-mini .pp-bar {
+      flex: 1;
+      min-width: 80px
+    }
+
+    .pp-mini b {
+      white-space: nowrap
+    }
+
+    .pp-mini small {
+      color: var(--dim);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums
+    }
+
+    @media (max-width: 720px) {
+      .pp-row {
+        grid-template-columns: 22px 60px minmax(0, 1fr) 80px 30px
+      }
+
+      .pp-row .pp-st {
+        display: none
+      }
+    }
+
+    /* a field's label with a small action on the right (e.g. AI Suggest) */
+    .f-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px
+    }
+
+    .btn.ai-mini {
+      padding: 2px 9px;
+      font-size: 11px;
+      height: auto;
+      min-height: 24px
+    }
+
+    .idea-empty {
+      padding: 28px 16px;
+      text-align: center;
+      font-size: 12.5px;
+      color: var(--dim);
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px
+    }
+
     /* full-width searchable pickers inside forms: text on the left, caret pinned to the right edge */
     .pick-field .pick-btn {
       justify-content: flex-start
@@ -18430,7 +18680,8 @@
         })()) +
         nav("series", navIc("sparkle", "series"), "AI Series Studio", (() => {
           if (S.serProdStatus && S.serProdStatus.status === "rendering") {
-            return `<span class="working" title="${esc(S.serProdStatus.message || 'Rendering episode')}"><i></i>${S.serProdStatus.progress || 10}%</span>`;
+            const st = S.serProdStatus;
+            return `<span class="working" title="${esc(`Episode ${st.ep_num || ""}: ${st.message || "being made"}`)}"><i></i>${Math.round(st.percent ?? st.progress ?? 0)}%</span>`;
           }
           return "";
         })()) +
@@ -19275,10 +19526,9 @@
         const fld = t.dataset.serSceneField;
         if (S.draftScript && S.draftScript.scenes && S.draftScript.scenes[idx]) {
           S.draftScript.scenes[idx][fld] = fld === "duration_sec" ? (Number(t.value) || 55) : t.value;
-          if (fld === "duration_sec") {
-            const totalDur = S.draftScript.scenes.reduce((acc, x) => acc + (x.duration_sec || 55), 0);
+          if (fld === "duration_sec" || fld === "dialogue") {
             const hdr = $("#ser_est_dur_hdr");
-            if (hdr) hdr.textContent = `Estimated Duration: ~${Math.round(totalDur)}s (~${(totalDur / 60).toFixed(1)} mins) · 📺 16:9 Long Video + 📱 9:16 Short`;
+            if (hdr) hdr.innerHTML = serLengthText(S.draftScript);
           }
         }
       }
@@ -19325,7 +19575,7 @@
           loadSeriesData(true).then(drawSeriesStudio);
         });
       }
-      if (e.target.id === "ser_switcher") { S.activeSeriesId = e.target.value; S.activeSeries = null; S.draftScript = null; S.serPitches = null; S.serProdStatus = null; loadSeriesData(true).then(drawSeriesStudio); }
+      if (e.target.id === "ser_switcher") { S.activeSeriesId = e.target.value; S.activeSeries = null; S.draftScript = null; S.serPitches = null; S.serProdStatus = null; S.epCast = null; S.epNewcomer = false; loadSeriesData(true).then(drawSeriesStudio); }
       if (e.target.id === "o_creator") setLang(S.creators.find(x => x.id === e.target.value)?.lang || "en");
     });
     const CAP_LOOK = { bounce: { font: "'Archivo Black'", hl: "#FFFF00", up: true }, hype: { font: "Anton", hl: "#FF3C3C", up: true }, clean: { font: "Poppins", hl: "#6BD7FF", up: false, w: 800 } };
@@ -22001,6 +22251,139 @@
     /* ============================================================ AI Series & Story Studio (Plan 05) */
     let _serPollTimer = null;
 
+    // ---- episode production progress (GET .../episodes/N/status, studio/progress.py)
+    // The panel is painted in place every couple of seconds; timers tick every second in the browser from the
+    // server's own clock, so they keep counting between updates and survive a page reload.
+    const SER_STAGE_IC = { waiting: "○", voice: "🎙️", animate: "🎬", pictures: "🖼️", finish: "🎨", done: "✅", cached: "♻️", failed: "⚠️", running: "⏳", skipped: "–" };
+    function serDur(sec) {
+      sec = Math.max(0, Math.round(sec || 0));
+      const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60;
+      return h ? `${h}h ${String(m).padStart(2, "0")}m` : m ? `${m}m ${String(x).padStart(2, "0")}s` : `${x}s`;
+    }
+    const serNow = () => Date.now() / 1000 - (S.serClockOff || 0);
+    // a live timer: counts up from a server time, or down to a finish time
+    const serTick = (since, down) => `<span data-tick="${since}"${down ? ' data-down="1"' : ""}>${serDur(down ? since - serNow() : serNow() - since)}</span>`;
+    function serEtaHtml(st) {
+      if (st.status !== "rendering") return "–";
+      if (st.eta_sec == null) return "working it out…";
+      return serTick((st.now || serNow()) + st.eta_sec, true);
+    }
+    function serProdBody(st, sid) {
+      const live = st.status === "rendering", pct = Math.round(st.percent ?? st.progress ?? 0);
+      const scenes = st.scenes || [], n = st.scene_count || scenes.length;
+      const doneN = st.scenes_done ?? scenes.filter(x => x.stage === "done" || x.stage === "cached").length;
+      const step = st.step || { label: st.message, frac: 0 };
+      const stateWord = st.status === "interrupted" ? "Stopped part-way" : st.status === "failed" ? "Production failed" : "Making the episode";
+      const sceneRows = scenes.map(x => {
+        const on = !["waiting", "done", "cached", "failed"].includes(x.stage);
+        const t = x.took != null ? `${x.stage === "cached" ? "reused" : serDur(x.took)}` : (on && x.elapsed != null && live ? serTick(serNow() - x.elapsed) : "");
+        const sub = on && x.total ? `<div class="pp-bar sm"><i style="width:${Math.round((x.frac || 0) * 100)}%"></i></div>` : "";
+        const can = (x.stage === "done" || x.stage === "cached");
+        return `<div class="pp-row ${esc(x.stage)} ${on ? "on" : ""}">
+          <span class="pp-ic">${SER_STAGE_IC[x.stage] || "○"}</span>
+          <span class="pp-name">Scene ${x.idx}</span>
+          <span class="pp-set" title="${esc(x.setting || "")}">${esc(x.setting || "—")} <span style="color:var(--faint)">· ${Math.round(x.length || 0)}s</span></span>
+          <span class="pp-st">${esc(x.label || x.stage)}${on && x.total ? ` · ${x.done}/${x.total}` : ""}${sub}</span>
+          <span class="pp-t">${t}</span>
+          <span>${can ? `<button type="button" class="btn sm icon ghost" data-act="ser-prod-scene" data-sid="${esc(sid)}" data-ep="${st.ep_num}" data-idx="${x.idx}" title="Watch this scene" aria-label="Watch scene ${x.idx}">${ic("play")}</button>` : ""}</span>
+          ${x.error ? `<span class="pp-err">${esc(x.error)}</span>` : ""}
+        </div>`;
+      }).join("");
+      const finRows = (st.finish || []).map(f => `<div class="pp-row ${f.stage === "done" ? "done" : f.stage === "failed" ? "failed" : f.stage === "running" ? "on" : "waiting"}">
+          <span class="pp-ic">${SER_STAGE_IC[f.stage] || "○"}</span>
+          <span class="pp-name">Final</span>
+          <span class="pp-set">${esc(f.label)}</span>
+          <span class="pp-st">${f.stage === "running" ? `Working · ${Math.round((f.frac || 0) * 100)}%<div class="pp-bar sm"><i style="width:${Math.round((f.frac || 0) * 100)}%"></i></div>` : f.stage === "waiting" ? "Waiting" : f.stage === "skipped" ? "Not needed" : f.stage === "done" ? "Finished" : esc(f.stage)}</span>
+          <span class="pp-t">${f.took != null ? serDur(f.took) : ""}</span><span></span>
+        </div>`).join("");
+      return `
+        <div class="pp-head">
+          <div>
+            <div class="pp-kicker">${live ? `<span class="btn-spin" style="border-color:var(--brand-line);border-top-color:var(--brand)"></span>` : ""}${esc(stateWord)}</div>
+            <h3>Episode ${st.ep_num || ""}${st.title ? ` · ${esc(st.title)}` : ""}</h3>
+            <span class="sub" style="font-size:12px">${n ? `Scene ${Math.min(n, doneN + (live ? 1 : 0)) || doneN} of ${n} · ${doneN} finished` : ""}</span>
+          </div>
+          <div class="pp-nums">
+            <div class="pp-num"><b>${pct}%</b><span>Done</span></div>
+            <div class="pp-num"><b>${st.started_at ? (live ? serTick(st.started_at) : serDur(st.elapsed)) : "–"}</b><span>Elapsed</span></div>
+            <div class="pp-num"><b>${serEtaHtml(st)}</b><span>Time left</span></div>
+          </div>
+        </div>
+        <div class="pp-bar"><i style="width:${pct}%"></i></div>
+        ${live ? `<div class="pp-now">
+          <div class="pp-now-top"><span>Now: ${esc(step.label || st.message || "Working")}</span><small>${step.since ? `for ${serTick(step.since)}` : ""}${step.frac ? ` · ${Math.round(step.frac * 100)}%` : ""}</small></div>
+          <div class="pp-bar sm"><i style="width:${Math.round((step.frac || 0) * 100)}%"></i></div>
+        </div>` : ""}
+        ${st.status === "interrupted" ? `<div class="pp-now" style="border-color:var(--line-2)"><div class="pp-now-top"><span>${esc(st.message || "Stopped part-way")}</span></div>
+          ${st.can_resume ? `<div><button type="button" class="btn sm primary" data-act="ser-prod-resume" data-sid="${esc(sid)}" data-ep="${st.ep_num}">${ic("play")} Resume production</button></div>` : ""}</div>` : ""}
+        ${st.status === "failed" ? `<div class="pp-now" style="border-color:var(--bad)"><div class="pp-now-top"><span style="color:var(--bad)">${esc(st.error || st.message || "Production failed")}</span></div>
+          ${st.can_resume ? `<div><button type="button" class="btn sm primary" data-act="ser-prod-resume" data-sid="${esc(sid)}" data-ep="${st.ep_num}">${ic("play")} Resume production</button></div>` : ""}</div>` : ""}
+        ${scenes.length ? `<div class="pp-list">${sceneRows}${finRows}</div>` : ""}`;
+    }
+    function serProdPanelHtml(st, sid) {
+      return `<div class="pp" id="ser_prod_panel"><div id="ser_prod_body" style="display:flex;flex-direction:column;gap:16px">${serProdBody(st, sid)}</div><div id="ser_prod_preview"></div></div>`;
+    }
+    function serProdMiniHtml(st) {
+      const pct = Math.round(st.percent ?? st.progress ?? 0);
+      return `<div class="pp-mini" id="ser_prod_mini"><span class="btn-spin" style="border-color:var(--brand-line);border-top-color:var(--brand)"></span>
+        <b>Episode ${st.ep_num || ""} · ${pct}%</b><div class="pp-bar sm"><i style="width:${pct}%"></i></div>
+        <small>${esc(st.step?.label || st.message || "")} · ${st.started_at ? serTick(st.started_at) : ""} elapsed · ${serEtaHtml(st)} left</small>
+        <button type="button" class="btn sm" data-act="ser-tab" data-t="script">Open</button></div>`;
+    }
+    // repaint only the panel (and the slim banner), never the whole studio
+    function serProdPaint() {
+      const st = S.serProdStatus; if (!st) return;
+      const body = $("#ser_prod_body"); if (body) body.innerHTML = serProdBody(st, S.serProdSid);
+      const mini = $("#ser_prod_mini"); if (mini && st.status === "rendering") mini.outerHTML = serProdMiniHtml(st);
+    }
+    setInterval(() => {   // the timers: once a second, no server call
+      $$("[data-tick]").forEach(el => {
+        const t = +el.dataset.tick;
+        el.textContent = serDur(el.dataset.down ? t - serNow() : serNow() - t);
+      });
+    }, 1000);
+    function serWatchProduction(sid, epNum) {
+      if (_serPollTimer) clearInterval(_serPollTimer);
+      S.serProdSid = sid;
+      const poll = async () => {
+        try {
+          const st = await api(`/api/series/${encodeURIComponent(sid)}/episodes/${epNum}/status`);
+          if (st.now) S.serClockOff = Date.now() / 1000 - st.now;
+          S.serProdStatus = { ...st, ep_num: st.ep_num || epNum };
+          drawShell();
+          if (st.status === "rendering") return serProdPaint();
+          clearInterval(_serPollTimer); _serPollTimer = null;
+          if (st.status === "not_found") { S.serProdStatus = null; return; }
+          await loadSeriesData(true);
+          drawShell();
+          if (st.status === "completed") toast(`Episode ${epNum} is ready! Made in ${serDur(st.render_seconds || st.elapsed)}`, "ok");
+          else if (st.status === "failed") toast(`Episode ${epNum}: ${st.error || "production failed"}`, "bad");
+          if (S.view === "series") drawSeriesStudio();
+        } catch { }
+      };
+      poll();
+      _serPollTimer = setInterval(poll, 2000);
+    }
+    // after a reload, or on coming back to a series: pick up an episode that is being made (or was stopped)
+    async function serFindProductions(sid) {
+      S.serProdCheckedAt = S.serProdCheckedAt || {};
+      if (!sid || Date.now() - (S.serProdCheckedAt[sid] || 0) < 15000) return;
+      if (S.serProdStatus && S.serProdSid === sid && ["rendering", "interrupted"].includes(S.serProdStatus.status)) return;
+      S.serProdCheckedAt[sid] = Date.now();
+      try {
+        const list = (await api(`/api/series/${encodeURIComponent(sid)}/productions`)).productions || [];
+        const st = list.find(x => x.status === "rendering") || list.find(x => x.status === "interrupted");
+        if (!st || S.activeSeriesId !== sid) return;
+        if (st.now) S.serClockOff = Date.now() / 1000 - st.now;
+        S.serProdStatus = st; S.serProdSid = sid;
+        if (st.status === "rendering") serWatchProduction(sid, st.ep_num);
+        drawShell();
+        if (S.view === "series") drawSeriesStudio();
+      } catch { }
+    }
+    // is something playing on the studio page? (then a background refresh must not rebuild it and cut it off)
+    const serMediaPlaying = () => [...document.querySelectorAll("#view audio, #view video, #seriesStudio audio, #seriesStudio video")].some(m => !m.paused && !m.ended);
+
     async function loadSeriesData(force = false) {
       if (!S.seriesList || force) {
         try {
@@ -22026,28 +22409,108 @@
       }
     }
 
+    // ---- New Series dialog: ideas that fit the chosen video format, market and language (POST /api/series/ideas)
+    const SER_MARKET_LANG = { IN: "hi", US: "en", JP: "ja", GB: "en" };
+    function serIdeaCtx() {
+      return {
+        format: $("#modal_ser_format")?.value || S.newShowFormat || "kids_3d",
+        market: S.activeNewShowMkt || "IN",
+        lang: $("#modal_ser_lang")?.value || SER_MARKET_LANG[S.activeNewShowMkt] || "en",
+        title: $("#modal_ser_title")?.value || "",
+        genre: $("#modal_ser_genre")?.value || "",
+        cast: $("#modal_ser_cast")?.value || ""
+      };
+    }
+    async function serFetchIdeas(want, count, extra = {}) {
+      const res = await send("/api/series/ideas", { ...serIdeaCtx(), want, count, ...extra });
+      (res.concepts || []).forEach(serRememberCast);
+      return res;
+    }
+    // the cast box shows "Name (Species)"; the full look and personality are kept here for when the series is created
+    function serRememberCast(idea) {
+      S.serCastDetails = S.serCastDetails || {};
+      (idea?.character_seed || []).forEach(c => { S.serCastDetails[(c.name || "").trim().toLowerCase()] = c; });
+    }
+    const serCastText = idea => (idea?.character_seed || []).map(c => `${c.name} (${c.species || "Character"})`).join(", ");
+    function serLooksHtml(f) {
+      return (f?.looks || []).map((l, i) => `<button type="button" class="btn sm ${i ? "ghost" : ""}" data-act="ser-style-preset" data-style="${esc(l.style)}" style="padding:2px 8px;font-size:11px">${esc(l.emoji || "")} ${esc(l.label)}</button>`).join("");
+    }
+    function serIdeasHtml(list, src) {
+      if (!list) return `<div class="idea-empty"><span class="btn-spin" style="border-color:var(--line);border-top-color:var(--brand)"></span>Finding series ideas for this format…</div>`;
+      if (!list.length) return `<div class="idea-empty">No ideas came back. <button type="button" class="btn sm" data-act="ser-ideas-more">Try again</button></div>`;
+      return list.map((t, idx) => `
+            <div class="card" style="padding:16px;border-radius:12px;border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                <span class="pill ${idx === 0 ? 'primary' : 'ok'}" style="font-size:10.5px">${esc(t.category || "")}</span>
+                <span class="sub" style="font-size:11px">${esc(t.target_audience || "")}</span>
+              </div>
+              <h4 style="font-size:14px;font-weight:700;margin:0;color:var(--text)">${esc(t.title)}</h4>
+              <p class="sub" style="font-size:12px;line-height:1.45;margin:0">${esc(t.logline || "")}</p>
+              <div style="font-size:11.5px;color:var(--dim);background:var(--muted);padding:8px 10px;border-radius:8px">
+                <b>👥 Cast:</b> ${(t.character_seed || []).map(c => `${esc(c.name)} <span style="color:var(--faint)">(${esc(c.species || "")})</span>`).join(", ")}${t.hook ? ` · <b>⚡ Hook:</b> ${esc(t.hook)}` : ""}
+              </div>
+              <div style="display:flex;justify-content:flex-end;margin-top:2px">
+                <button type="button" class="btn sm primary" data-act="ser-use-trend" data-tidx="${idx}">⚡ Use This Blueprint</button>
+              </div>
+            </div>`).join("") + (src === "builtin" ? `<small class="sub" style="font-size:11px">These are built-in ideas. Set up an AI service in Settings to get fresh ideas written for you.</small>` : "");
+    }
+    // fill the form from an idea; remembers what was filled in automatically so a format change may replace it
+    function serApplyIdea(t, quiet) {
+      if (!t) return;
+      S.selectedTrend = t;
+      serRememberCast(t);
+      if ($("#modal_ser_title")) $("#modal_ser_title").value = t.title || "";
+      if ($("#modal_ser_genre")) $("#modal_ser_genre").value = t.genre || "";
+      if ($("#modal_ser_style") && t.visual_style) $("#modal_ser_style").value = t.visual_style;
+      if ($("#modal_ser_cast")) $("#modal_ser_cast").value = serCastText(t);
+      S.serAutoTitle = t.title || "";
+      const col = $("#ser_blueprint_col");
+      if (col && !quiet) {
+        col.style.borderColor = "var(--brand)";
+        setTimeout(() => { if (col) col.style.borderColor = "var(--line)"; }, 600);
+      }
+    }
+    // the right-hand list: ideas for the current format + market + language (kept per combination while the page is open)
+    async function serLoadIdeas(fresh) {
+      const c = serIdeaCtx(), key = `${c.format}|${c.market}|${c.lang}`;
+      S.serIdeasCache = S.serIdeasCache || {};
+      const box = $("#ser_trends_container"), count = $("#ser_ideas_count");
+      const fmtName = (S.videoFormats || []).find(f => f.id === c.format)?.name || "this format";
+      if ($("#ser_ideas_fmt")) $("#ser_ideas_fmt").textContent = fmtName;
+      let hit = !fresh && S.serIdeasCache[key];
+      if (!hit) {
+        if (box) box.innerHTML = serIdeasHtml(null);
+        if (count) count.textContent = "…";
+        S.serIdeasKey = key;
+        try {
+          const res = await serFetchIdeas("all", 4, { title: "", cast: "", genre: "" });
+          hit = { list: res.concepts || [], src: res.source };
+        } catch (e) { hit = { list: [], src: "" }; toast(e.message || "Could not get ideas", "bad"); }
+        S.serIdeasCache[key] = hit;
+        if (S.serIdeasKey !== key) return;   // the format was changed again while waiting
+      }
+      S.currentMarketTrends = hit.list;
+      if (box) box.innerHTML = serIdeasHtml(hit.list, hit.src);
+      if (count) count.textContent = `${hit.list.length} Blueprints`;
+      // nothing typed yet, or still the idea we filled in ourselves: show the first idea in the form
+      const t = $("#modal_ser_title")?.value?.trim() || "";
+      if (hit.list[0] && (!t || t === S.serAutoTitle)) serApplyIdea(hit.list[0], true);
+    }
+
     async function openNewShowModal(initialMkt = "IN") {
       const d = $("#formdlg");
       S.activeNewShowMkt = initialMkt || "IN";
-
-      // Fetch market trends from backend
-      let trendsData = [];
-      try {
-        const res = await api(`/api/series/trends?country=${encodeURIComponent(S.activeNewShowMkt)}`);
-        trendsData = res.trends || [];
-      } catch {
-        trendsData = [];
-      }
-      S.currentMarketTrends = trendsData;
-      const initialTrend = trendsData[0] || null;
-      S.selectedTrend = initialTrend;
+      S.selectedTrend = null;
+      S.serAutoTitle = "";
+      S.serTitleIdeas = null;
+      S.serCastIdeas = null;
 
       const mkt = S.activeNewShowMkt;
-      const curLang = initialTrend?.default_language || (mkt === "IN" ? "hi" : mkt === "JP" ? "ja" : "en");
-      const mktNames = { IN: "Indian Market (🇮🇳)", US: "US & Global (🇺🇸)", JP: "Japan Anime (🇯🇵)", GB: "UK & European (🇬🇧)" };
+      const curLang = SER_MARKET_LANG[mkt] || "en";
+      const mktNames = { IN: "India", US: "US & Global", JP: "Japan", GB: "UK" };
 
       // Every kind of video the studio can make (horror, anime, 2D, 3D, documentary...): studio/formats.py
-      if (!S.videoFormats) {
+      if (!S.videoFormats || !S.videoFormats.some(f => f.looks)) {
         try { S.videoFormats = (await api("/api/studio/formats")).formats || []; } catch { S.videoFormats = []; }
       }
       const fmtList = S.videoFormats;
@@ -22061,10 +22524,10 @@
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
           <span style="font-size:22px">✨</span>
-          <h2 style="font-size:20px;font-weight:700;margin:0;color:var(--brand-ink)">3D Series Conception & AI Market Studio</h2>
+          <h2 style="font-size:20px;font-weight:700;margin:0;color:var(--brand-ink)">Series Conception & AI Market Studio</h2>
           <span class="pill primary sm">AI Insights</span>
         </div>
-        <p class="sub" style="font-size:13px;margin:0">Explore high-velocity YouTube Kids & 3D Animation market niches, or blueprint a custom continuous franchise.</p>
+        <p class="sub" style="font-size:13px;margin:0">Pick a video format and a market: AI suggests series ideas, titles, casts and looks that fit them.</p>
       </div>
       <button type="button" class="btn sm icon ghost" data-act="dlg-close" aria-label="Close">${ic("x")}</button>
     </div>
@@ -22073,11 +22536,19 @@
     <div style="margin-bottom:20px">
       <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">1. Select Target Geographic Market</div>
       <div class="seg" role="tablist" style="background:var(--muted)">
-        <button type="button" data-act="ser-mkt-switch" data-mkt="IN" aria-pressed="${mkt === 'IN'}">🇮🇳 Indian Market (Panchatantra, Mythology, Gully Tales)</button>
-        <button type="button" data-act="ser-mkt-switch" data-mkt="US" aria-pressed="${mkt === 'US'}">🇺🇸 US & Global (Rescue Trucks, Space Critters, Dinos)</button>
-        <button type="button" data-act="ser-mkt-switch" data-mkt="JP" aria-pressed="${mkt === 'JP'}">🇯🇵 Japan (Chibi Food Spirits, Cloud Train)</button>
-        <button type="button" data-act="ser-mkt-switch" data-mkt="GB" aria-pressed="${mkt === 'GB'}">🇬🇧 UK Storybook (Woodland Animals, Steam Engine)</button>
+        <button type="button" data-act="ser-mkt-switch" data-mkt="IN" aria-pressed="${mkt === 'IN'}">🇮🇳 India</button>
+        <button type="button" data-act="ser-mkt-switch" data-mkt="US" aria-pressed="${mkt === 'US'}">🇺🇸 US & Global</button>
+        <button type="button" data-act="ser-mkt-switch" data-mkt="JP" aria-pressed="${mkt === 'JP'}">🇯🇵 Japan</button>
+        <button type="button" data-act="ser-mkt-switch" data-mkt="GB" aria-pressed="${mkt === 'GB'}">🇬🇧 UK</button>
       </div>
+    </div>
+
+    <!-- The creator's own idea: paste anything, the AI fills the whole form -->
+    <div style="margin-bottom:20px;padding:16px 18px;border:1px solid var(--brand-line);background:var(--brand-soft);border-radius:14px">
+      <div class="f-head"><b style="font-size:13px;color:var(--brand-ink)">✍️ Start from your own idea</b>
+        <small class="sub" style="font-size:11.5px">Paste a story, characters or a concept, in any language. The AI fills everything below and Episode 1.</small></div>
+      <textarea id="modal_ser_brief" rows="4" style="width:100%;margin-top:8px;font-size:12.5px" placeholder="e.g. Title, the characters with what they are like, and the story of the first episode…">${esc(S.serBrief || "")}</textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px"><button type="button" class="btn primary sm" data-act="ser-from-brief">${ic("sparkle")} Build series from this</button></div>
     </div>
 
     <!-- Two-Column Conception Studio -->
@@ -22086,7 +22557,7 @@
       <div id="ser_blueprint_col" style="display:flex;flex-direction:column;gap:16px;background:var(--muted);padding:22px 24px;border-radius:14px;border:1px solid var(--line);transition:border-color 0.25s ease">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--brand-deep)">2. Franchise Blueprint</span>
-          <button type="button" class="btn sm ghost" data-act="ser-ai-title" style="font-size:11px;padding:3px 8px">${ic("sparkle")} AI Title Suggest</button>
+          <button type="button" class="btn sm ghost" data-act="ser-ai-all" style="font-size:11px;padding:3px 8px" title="A whole new series idea for this format: title, genre, look and cast">${ic("sparkle")} AI Suggest Whole Series</button>
         </div>
 
         <div class="nsm-row">
@@ -22095,15 +22566,16 @@
             ({ v: f.id, label: f.name, sub: `${f.category} · ${f.dimension === "photoreal" ? "Photoreal" : f.dimension.toUpperCase()}`, badge: f.emoji }))),
             curFmt, "Search formats: horror, anime, 2D...")}
         </div>` : ""}
-          <label class="f">Series / Show Title
-            <input id="modal_ser_title" required placeholder="e.g. Panchatantra 3D: Forest Detectives" value="${esc(initialTrend?.title || 'Farm Friends 3D Adventures')}" style="height:42px" />
-          </label>
+          <div class="f">
+            <div class="f-head"><span>Series / Show Title</span><button type="button" class="btn sm ghost ai-mini" data-act="ser-ai-title" title="Titles that fit the format and the cast">${ic("sparkle")} Suggest</button></div>
+            <input id="modal_ser_title" required placeholder="Pick an idea on the right or press Suggest" value="" style="height:42px" />
+          </div>
         </div>
         <small class="sub" id="modal_ser_fmt_desc" style="font-size:11.5px;margin-top:-8px;line-height:1.45">${esc(curFmtObj?.description || "")}</small>
 
         <div class="nsm-row">
           <label class="f">Genre / Theme
-            <input id="modal_ser_genre" required placeholder="e.g. 3D Moral Cartoon Fables" value="${esc(initialTrend?.genre || '3D Cartoon Adventure')}" style="height:42px" />
+            <input id="modal_ser_genre" required placeholder="e.g. Haunted Village Horror" value="${esc(curFmtObj?.name || '3D Cartoon Adventure')}" style="height:42px" />
           </label>
           <div class="f">Primary Language
             ${modalPick("modal_ser_lang", "Primary language", SER_LANGUAGES, curLang, "Search language...")}
@@ -22114,24 +22586,18 @@
         <div class="f">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
             <span>Visual Style DNA</span>
-            <span style="font-size:11px;font-weight:500;color:var(--faint)">One-click presets</span>
+            <span style="font-size:11px;font-weight:500;color:var(--faint)">One-click looks for this format</span>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="hyper-realistic 3D Unreal Engine 5 render, cinematic lighting, realistic human skin textures, ray tracing, 8k photorealistic" style="padding:2px 8px;font-size:11px">🧍 Realistic Humans (Unreal 5)</button>
-            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="cinematic 3D live-action aesthetic, photorealistic human characters, natural golden hour lighting, 35mm lens bokeh, 8k" style="padding:2px 8px;font-size:11px">🎬 Cinematic Drama (Photoreal)</button>
-            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="cinematic 3D cyberpunk sci-fi, detailed human characters, neon volumetric atmospheric haze, octane render, 8k" style="padding:2px 8px;font-size:11px">🚀 Cyberpunk Humans</button>
-            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="high-gloss 3D Pixar toy CGI, octane render, soft volumetric lighting, vibrant primary colors, 8k" style="padding:2px 8px;font-size:11px">🧸 Pixar Toy 3D</button>
-            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="high-end 3D anime style, detailed human characters, dynamic dramatic lighting, Makoto Shinkai aesthetic, 8k" style="padding:2px 8px;font-size:11px">⚔️ 3D Anime Humans</button>
-            <button type="button" class="btn sm ghost" data-act="ser-style-preset" data-style="dreamy 3D cinematic animation, golden hour volumetric godrays, glowing celestial magic, vibrant Indian motifs, 8k" style="padding:2px 8px;font-size:11px">✨ Cinematic Godrays</button>
-          </div>
-          <textarea id="modal_ser_style" rows="3" style="font-size:12px;line-height:1.5">${esc(initialTrend?.visual_style || 'hyper-realistic 3D Unreal Engine 5 render, cinematic lighting, realistic human skin textures, ray tracing, 8k photorealistic')}</textarea>
+          <div id="ser_looks" style="display:flex;gap:6px;flex-wrap:wrap">${serLooksHtml(curFmtObj)}</div>
+          <textarea id="modal_ser_style" rows="3" style="font-size:12px;line-height:1.5">${esc(curFmtObj?.visual_style || 'high-gloss 3D toy CGI, soft lighting, vibrant primary colors')}</textarea>
         </div>
 
         <!-- Initial Character Seeds -->
-        <label class="f">Initial Characters Cast Seed
-          <textarea id="modal_ser_cast" rows="2" style="font-size:12px" placeholder="e.g. Inspector Kabir (Human Detective), Dr. Maya (Scientist) OR Bhalu Bhai (Brown Bear)">${esc(initialTrend && initialTrend.character_seed ? initialTrend.character_seed.map(c => `${c.name} (${c.species || 'Character'})`).join(", ") : "Inspector Kabir (Human Detective), Dr. Maya (Scientist)")}</textarea>
-          <small class="sub" style="font-size:11px">Avatars & neural voices will be auto-generated in the Character Vault for persistent continuity across every episode.</small>
-        </label>
+        <div class="f">
+          <div class="f-head"><span>Initial Characters Cast Seed</span><button type="button" class="btn sm ghost ai-mini" data-act="ser-ai-cast" title="A cast that fits the format and the title">${ic("sparkle")} Suggest cast</button></div>
+          <textarea id="modal_ser_cast" rows="2" style="font-size:12px" placeholder="Name (what they are), e.g. Meera (Young Woman), Raghu (Old Man), The Shadow (Ghost)"></textarea>
+          <small class="sub" style="font-size:11px">Write each as Name (what they are). The 3D character, portrait and voice are made from this in the Character Vault.</small>
+        </div>
 
         <div class="nsm-row">
           <div class="f">Aspect Ratio
@@ -22155,32 +22621,18 @@
           <div>
             <div style="display:flex;align-items:center;gap:6px">
               <span style="font-size:14px">🔥</span>
-              <b style="font-size:13px;text-transform:uppercase;color:var(--brand-ink)">Trending in ${mktNames[mkt] || mkt} Animation</b>
+              <b style="font-size:13px;text-transform:uppercase;color:var(--brand-ink)">Ideas: <span id="ser_ideas_fmt">${esc(curFmtObj?.name || "")}</span> · ${esc(mktNames[mkt] || mkt)}</b>
             </div>
-            <span class="sub" style="font-size:11.5px">High-engagement YouTube niches analyzed by AI</span>
+            <span class="sub" style="font-size:11.5px">Series ideas written by AI for the video format you picked</span>
           </div>
-          <span class="pill primary sm">${trendsData.length} Blueprints</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="pill primary sm" id="ser_ideas_count">…</span>
+            <button type="button" class="btn sm ghost" data-act="ser-ideas-more" title="Different ideas">↻ More ideas</button>
+          </div>
         </div>
 
         <div id="ser_trends_container" style="display:flex;flex-direction:column;gap:12px;max-height:640px;overflow-y:auto;padding-right:4px">
-          ${trendsData.map((t, idx) => `
-            <div class="card" style="padding:16px;border-radius:12px;border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span class="pill ${idx === 0 ? 'primary' : 'ok'}" style="font-size:10.5px">${esc(t.category)}</span>
-                <span class="sub" style="font-size:11px">${esc(t.target_audience || 'Kids')}</span>
-              </div>
-              <h4 style="font-size:14px;font-weight:700;margin:0;color:var(--text)">${esc(t.title)}</h4>
-              <p class="sub" style="font-size:12px;line-height:1.45;margin:0">${esc(t.logline)}</p>
-              <div style="font-size:11.5px;color:var(--dim);background:var(--muted);padding:8px 10px;border-radius:8px">
-                <b>👥 Cast:</b> ${(t.character_seed || []).map(c => esc(c.name)).join(", ")} · <b>⚡ Hook:</b> ${esc(t.hook)}
-              </div>
-              <div style="display:flex;justify-content:flex-end;margin-top:2px">
-                <button type="button" class="btn sm primary" data-act="ser-use-trend" data-tidx="${idx}">
-                  ⚡ Use This Blueprint
-                </button>
-              </div>
-            </div>
-          `).join("")}
+          ${serIdeasHtml(null)}
         </div>
       </div>
     </div>
@@ -22200,14 +22652,30 @@
         S.newShowFormat = f.id;
         if ($("#modal_ser_genre")) $("#modal_ser_genre").value = f.name;
         if ($("#modal_ser_style")) $("#modal_ser_style").value = f.visual_style;
+        if ($("#ser_looks")) $("#ser_looks").innerHTML = serLooksHtml(f);
         setPick("modal_ser_ratio", f.aspect_ratio);
         if ($("#modal_ser_fmt_desc")) $("#modal_ser_fmt_desc").textContent = f.description;
+        S.serTitleIdeas = null; S.serCastIdeas = null;
+        serLoadIdeas();
       });
+      $("#modal_ser_lang")?.addEventListener("change", () => { S.serTitleIdeas = null; S.serCastIdeas = null; serLoadIdeas(); });
       d.showModal();
+      serLoadIdeas();
     }
 
+    document.addEventListener("change", e => { if (e.target.id === "ser_cast_newcomer") S.epNewcomer = e.target.checked; });
+    // a scene's set chips write into the scene's 'set' (place, time, weather); "Auto" leaves it to the setting's words
+    document.addEventListener("change", e => {
+      const t = e.target, f = t?.dataset?.serSetField;
+      if (!f || !S.draftScript?.scenes) return;
+      const sc = S.draftScript.scenes[+t.dataset.idx]; if (!sc) return;
+      sc.set = { ...(sc.set || {}) };
+      if (t.value) sc.set[f] = t.value; else delete sc.set[f];
+    });
     async function openNewCharModal() {
       const d = $("#formdlg");
+      S.charIdeas = []; S.charIdea = null;
+      d.addEventListener("close", () => { S.castAddPending = false; }, { once: true });
       const s = S.activeSeries;
       const lang = s?.default_language || "en";
       let voices = [];
@@ -22229,6 +22697,14 @@
       <button type="button" class="btn sm icon ghost" data-act="dlg-close">${ic("x")}</button>
     </div>
     <div style="display:grid;gap:14px">
+      <div class="f" style="background:var(--muted);border:1px solid var(--line);border-radius:12px;padding:12px 14px">
+        <div class="f-head"><span>${ic("sparkle")} Create with AI</span><small class="sub" style="font-size:11px;font-weight:500">Fits this show, its cast and its story</small></div>
+        <div style="display:flex;gap:8px">
+          <input id="modal_char_hint" placeholder="What kind of character? e.g. a funny rival, a wise old owl, a villain… (or leave empty)" style="flex:1;height:40px" />
+          <button type="button" class="btn primary" data-act="ser-char-ai" style="height:40px;white-space:nowrap">${ic("sparkle")} Suggest with AI</button>
+        </div>
+        <div id="modal_char_ideas" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <label class="f">Character Name
           <input id="modal_char_name" required placeholder="e.g. Leo the Lion" value="" />
@@ -22260,6 +22736,109 @@
       d.showModal();
     }
 
+    // fill the Add Character dialog from AI idea i (studio/concepts.py suggest_characters)
+    function serCharApply(i) {
+      const c = (S.charIdeas || [])[i]; if (!c) return;
+      S.charIdea = c;
+      if ($("#modal_char_name")) $("#modal_char_name").value = c.name || "";
+      if ($("#modal_char_species")) $("#modal_char_species").value = c.species || "";
+      if ($("#modal_char_visual")) $("#modal_char_visual").value = c.visual_anchor || "";
+      if ($("#modal_char_pers")) $("#modal_char_pers").value = c.personality || "";
+      if (c.voice_id) setPick("modal_char_voice", c.voice_id);
+      const box = $("#modal_char_ideas");
+      if (box) box.innerHTML = (S.charIdeas || []).map((x, k) =>
+        `<button type="button" class="btn sm ${k === i ? "primary" : "ghost"}" data-act="ser-char-idea" data-i="${k}" style="font-size:11.5px;padding:3px 10px">${esc(x.name)} · ${esc(x.species || "")}</button>`).join("");
+    }
+
+    // ---- who is in the next episode: chosen from the Vault (none chosen: the AI decides); a new one can be added here
+    // how long the episode will really be: the video lasts as long as its lines take to say (studio/storyteller.py
+    // WORDS_PER_SEC), not the seconds written on each scene
+    const SER_WPS = { hi: 2.1, en: 2.5, es: 2.4, fr: 2.4, de: 2.2, ja: 3.0 };
+    function serSceneWords(x) {
+      const lines = (x.lines || []).map(l => l.text || "");
+      const src = lines.some(Boolean) ? lines : String(x.dialogue || "").split("\n").map(r => r.split(":").slice(1).join(":") || r);
+      return src.join(" ").split(/\s+/).filter(Boolean).length;
+    }
+    function serLengthText(sc) {
+      const lang = (S.activeSeries?.default_language || "en").toLowerCase(), wps = SER_WPS[lang] || 2.3;
+      const n = (sc?.scenes || []).length;
+      const est = (sc?.scenes || []).reduce((a, x) => a + serSceneWords(x) / wps + 2, 0);
+      const target = (sc?.scenes || []).reduce((a, x) => a + (Number(x.duration_sec) || S.serSceneDur || 60), 0);
+      const m = v => `${Math.floor(v / 60)}m ${String(Math.round(v % 60)).padStart(2, "0")}s`;
+      const short = n && est < target * 0.8;
+      return `Real length from the lines: ~${m(est)} (asked for ~${m(target)}) · ${n} scenes · 📺 16:9 + 📱 9:16`
+        + (short ? ` <span style="color:var(--bad);font-weight:600">· ⚠️ The lines are too short for this length: press Regenerate, or add lines</span>` : "");
+    }
+    // ---- sets (Plan 12): the places a scene can be in, its time of day and weather (studio/anim3d/sets.py)
+    const SER_KITS = [
+      ["temple", "Temple", "🛕"], ["palace", "Palace / fort", "🏰"], ["ruins", "Ancient ruins", "🏛️"], ["ghat", "River ghat", "🪔"],
+      ["haveli", "Haveli courtyard", "🏡"], ["bazaar", "Bazaar", "🛍️"], ["mela", "Mela / fair", "🎡"], ["village", "Village", "🛖"],
+      ["city_street", "City street", "🏙️"], ["bus_stop", "Bus stop", "🚏"], ["highway", "Highway dhaba", "🛣️"], ["station", "Railway station", "🚉"],
+      ["train_interior", "Inside a train", "🚆"], ["rooftop", "Rooftop", "🏢"], ["school", "Classroom", "🏫"], ["playground", "Playground", "🛝"],
+      ["hospital", "Hospital", "🏥"], ["office", "Office", "💼"], ["cafe", "Café", "☕"], ["library", "Library", "📚"], ["lab", "Lab", "🧪"],
+      ["room", "Living room", "🛋️"], ["kitchen", "Kitchen", "🍳"], ["bedroom", "Bedroom", "🛏️"], ["stage", "Stage", "🎭"],
+      ["stadium", "Stadium", "🏟️"], ["garden", "Garden", "🌷"], ["forest_green", "Forest", "🌳"], ["forest_autumn", "Autumn forest", "🍂"],
+      ["jungle", "Jungle", "🌴"], ["field", "Fields", "🌾"], ["farm", "Farm", "🚜"], ["river", "River bank", "🏞️"], ["lake", "Lake", "🛶"],
+      ["waterfall", "Waterfall", "💦"], ["mountain", "Mountain", "⛰️"], ["desert", "Desert", "🏜️"], ["cave", "Cave", "🕳️"], ["beach", "Beach", "🏖️"],
+      ["snow", "Snow land", "❄️"], ["castle", "Castle", "🏰"], ["haunted_house", "Haunted house", "🏚️"], ["graveyard", "Graveyard", "🪦"],
+      ["underwater", "Underwater", "🐠"], ["space", "Space", "🚀"], ["space_station", "Space station", "🛰️"], ["planet", "Alien planet", "🪐"]
+    ].map(([v, label, badge]) => ({ v, label, badge }));
+    const SER_TIMES = [["dawn", "Dawn", "🌅"], ["morning", "Morning", "🌤️"], ["noon", "Noon", "☀️"], ["golden", "Golden hour", "🌇"], ["dusk", "Dusk", "🌆"], ["night", "Night", "🌙"], ["midnight", "Midnight", "🌑"]].map(([v, label, badge]) => ({ v, label, badge }));
+    const SER_WEATHERS = [["clear", "Clear", "☀️"], ["overcast", "Cloudy", "☁️"], ["rain", "Rain", "🌧️"], ["storm", "Storm", "⛈️"], ["fog", "Fog", "🌫️"], ["snow", "Snow", "🌨️"]].map(([v, label, badge]) => ({ v, label, badge }));
+    const SER_ERAS = [["modern", "Modern", "🏙️"], ["ancient", "Ancient / historical", "🏺"], ["future", "Future", "🛸"]].map(([v, label, badge]) => ({ v, label, badge }));
+    const SER_CULTURES = [["indian", "Indian", "🇮🇳"], ["western", "Western", "🇺🇸"], ["japanese", "Japanese", "🇯🇵"]].map(([v, label, badge]) => ({ v, label, badge }));
+    const serAuto = (list, what) => [{ v: "", label: `Auto (${what})`, badge: "✨" }, ...list];
+    const serPick = (id, icon, aria, items, val, attrs, w = "150px") => searchPicker(id, icon, aria, items, val, "Search...", {
+      attrs, btnStyle: "height:30px;padding:0 9px;font-size:11.5px;border-radius:8px", width: w, menuMinW: "220px" });
+    // the Location Vault: every place of the series, the same every time the story comes back to it
+    function serPlacesHtml(s) {
+      const locs = s.locations || [];
+      if (!locs.length) return `<div class="card" style="padding:32px;text-align:center;background:var(--muted)"><p class="sub">No places yet. They appear here once an episode is made: every place a scene uses is remembered, so it looks the same when the story comes back.</p></div>`;
+      return `<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px"><div><h3 style="font-size:16px;margin:0">📍 Location Vault (${locs.length})</h3><p class="sub" style="font-size:12px;margin:2px 0 0">Places of this series. Change a place's set, era or culture, or give it a new layout: every episode uses it.</p></div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">${locs.map(l => `
+        <div class="card" style="padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--muted);display:flex;flex-direction:column;gap:8px">
+          <img src="/api/series/${encodeURIComponent(s.id)}/locations/${encodeURIComponent(l.id)}/image.jpg?v=${l.seed}_${l.kit}" alt="" loading="lazy" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;background:#141624" />
+          <input id="loc_name_${esc(l.id)}" value="${esc(l.name)}" style="height:34px;font-weight:600;font-size:13px" />
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${serPick("loc_kit_" + l.id, "📍", "Set", SER_KITS, l.kit, "", "150px")}
+            ${serPick("loc_era_" + l.id, "⏳", "Era", SER_ERAS, l.era || "modern", "", "120px")}
+            ${serPick("loc_cul_" + l.id, "🌍", "Culture", SER_CULTURES, l.culture || "indian", "", "110px")}
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:6px">
+            <button type="button" class="btn sm ghost" data-act="ser-loc-save" data-lid="${esc(l.id)}" data-relayout="1">🔄 New layout</button>
+            <button type="button" class="btn sm primary" data-act="ser-loc-save" data-lid="${esc(l.id)}">${ic("check")} Save</button>
+          </div>
+        </div>`).join("")}</div>`;
+    }
+
+    function serCastCardHtml(s, epNum) {
+      const chars = s.characters || [], cast = S.epCast || [];
+      const chip = c => {
+        const on = cast.includes(c.name), cid = c.id || slugify(c.name || "character");
+        return `<button type="button" class="btn sm ${on ? "primary" : "ghost"}" data-act="ser-cast-toggle" data-name="${esc(c.name)}" aria-pressed="${on}" style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px">
+          <img src="/api/series/${encodeURIComponent(s.id)}/characters/${encodeURIComponent(cid)}/avatar.jpg?v=${S.avatarVer || 1}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover" onerror="this.style.display='none'" />
+          ${on ? "✓ " : ""}${esc(c.name)}</button>`;
+      };
+      return `<div class="card" style="padding:18px 20px;border-radius:14px;border:1px solid var(--line);background:var(--muted);margin-bottom:20px">
+        <div class="f-head"><b style="font-size:14px;color:var(--brand-ink)">👥 Cast for Episode ${epNum}</b>
+          <small class="sub" style="font-size:11.5px">${cast.length ? `${cast.length} chosen: each gets real lines in the script` : "None chosen: the AI picks from the Vault"}</small></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          ${chars.map(chip).join("")}
+          <button type="button" class="btn sm" data-act="ser-cast-newchar" title="Create a character for this episode (with AI suggestions)">${ic("plus")} New character</button>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--dim);cursor:pointer">
+          <input type="checkbox" id="ser_cast_newcomer" ${S.epNewcomer ? "checked" : ""} style="width:auto;height:auto" />
+          ✨ Let the AI introduce a new character in this episode (added to the Vault with a 3D look and a voice)
+        </label>
+      </div>`;
+    }
+    // the cast sent with a script request: the chosen one, else the idea's featured characters that are in the Vault
+    function serEpisodeCast(pitch) {
+      if (S.epCast && S.epCast.length) return [...S.epCast];
+      const vault = new Set((S.activeSeries?.characters || []).map(c => (c.name || "").toLowerCase()));
+      return (pitch?.featured_characters || []).filter(n => vault.has(String(n).toLowerCase()));
+    }
+
     function openCharPreviewModal(cid) {
       const s = S.activeSeries;
       const c = (s?.characters || []).find(x => x.id === cid || (x.name && slugify(x.name) === cid));
@@ -22284,13 +22863,16 @@
         <span class="pill ok sm">Active</span>
       </div>
       <div style="font-size:13px"><b>🧠 Personality & Traits:</b> ${esc(c.personality || 'Friendly, curious and kind')}</div>
-      <div style="font-size:12px;color:var(--dim)"><b>🎨 3D Visual Anchor (DNA):</b> ${esc(c.visual_anchor || '3D high-gloss cartoon')}</div>
+      <label class="f" style="font-size:12px;margin:0">🎨 3D Visual Anchor (DNA): what the 3D look is made from. Change it and press New look.
+        <textarea id="char_dna_edit" rows="2" style="font-size:12px;font-weight:500">${esc(c.visual_anchor || '')}</textarea>
+      </label>
     </div>
-    <div class="row" style="justify-content:space-between;align-items:center">
-      <button type="button" class="btn sm ghost" data-act="ser-char-regen" data-cid="${esc(charId)}" style="display:flex;align-items:center;gap:6px">
-        🔄 Re-render 3D Look
-      </button>
-      <button type="button" class="btn primary sm" data-act="dlg-close" style="padding:6px 20px">Done</button>
+    <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="row" style="gap:8px">
+        <button type="button" class="btn sm primary" data-act="ser-char-regen" data-cid="${esc(charId)}" data-mode="new" title="A different look each time (from the description above)" style="display:flex;align-items:center;gap:6px">🔄 New look</button>
+        <button type="button" class="btn sm ghost" data-act="ser-char-regen" data-cid="${esc(charId)}" data-mode="previous" ${(c.look_history || []).length ? "" : "disabled"} title="Bring back the look before">↩ Previous look</button>
+      </div>
+      <button type="button" class="btn sm" data-act="dlg-close" style="padding:6px 20px">Done</button>
     </div>
   </form>`;
       d.showModal();
@@ -22370,7 +22952,7 @@
 
         <!-- Editable Title with AI Rewrite -->
         <div class="ce3-f">
-          <label>Title <button type="button" class="btn sm ghost ce3-ai" data-act="ser-ep-ai-title" data-sid="${esc(sid)}" data-ep="${epNum}">${ic("bolt")} Write again with AI</button></label>
+          <label>Title <button type="button" class="btn sm ghost ce3-ai" data-act="ser-ep-ai-title" data-sid="${esc(sid)}" data-ep="${epNum}" title="Titles written by AI from this episode's story; press again for the next">${ic("bolt")} Write again with AI</button></label>
           <input id="ep_dlg_title" maxlength="100" value="${esc(ep.title)}" placeholder="Episode title">
         </div>
 
@@ -22621,6 +23203,8 @@
       const epCount = (s.episodes || []).length;
       const charCount = (s.characters || []).length;
       const lang = s.default_language || "en";
+      serFindProductions(s.id);
+      const prodHere = S.serProdStatus && S.serProdSid === s.id ? S.serProdStatus : null;
 
       let bodyHtml = "";
 
@@ -22675,6 +23259,7 @@
         </div>
       </div>
 
+      ${serCastCardHtml(s, epCount + 1)}
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:32px">
         ${pitches.length ? pitches.map((p, i) => `
           <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;padding:20px;border-radius:14px;border:1px solid var(--line);background:var(--muted)">
@@ -22687,6 +23272,7 @@
               <p class="sub" style="font-size:13px;line-height:1.5;margin-bottom:12px">${esc(p.logline)}</p>
               ${p.hook ? `<div style="font-size:12px;padding:8px 10px;background:rgba(255,255,255,0.6);border-radius:8px;margin-bottom:12px"><b>Hook:</b> ${esc(p.hook)}</div>` : ''}
               ${p.new_character ? `<div style="font-size:12px;color:var(--brand-deep);margin-bottom:12px">✨ Introduces new character: <b>${esc(p.new_character.name)}</b> (${esc(p.new_character.species || '')})</div>` : ''}
+              ${(p.featured_characters || []).length ? `<div style="font-size:12px;color:var(--dim);margin-bottom:6px">👥 Features: ${(p.featured_characters || []).map(esc).join(", ")}${S.epCast && S.epCast.length ? ` <span style="color:var(--faint)">(your cast above is used)</span>` : ""}</div>` : ''}
             </div>
             <button class="btn primary sm" style="width:100%;margin-top:10px" data-act="ser-pick-pitch" data-idx="${i}">
               ${ic("sparkle")} Select & Write ${targetScenes}-Scene Script (~${estMins}m)
@@ -22704,7 +23290,7 @@
         <h4 style="font-size:14px;font-weight:600;margin-bottom:6px">Or Enter Your Custom Seed Idea</h4>
         <p class="sub" style="font-size:12px;margin-bottom:12px">Write a specific direction, topic, or quest for Episode ${epCount + 1}:</p>
         <div style="display:flex;gap:10px">
-          <input id="ser_custom_prompt" placeholder="e.g. A 3D animated episode where our friends build a wooden treehouse..." style="flex:1" />
+          <textarea id="ser_custom_prompt" rows="${S.serSeedIdea ? 5 : 1}" placeholder="e.g. A 3D animated episode where our friends build a wooden treehouse..." style="flex:1;font-size:13px">${esc(S.serSeedIdea || "")}</textarea>
           <button class="btn primary" data-act="ser-custom-script">${ic("play")} Write ${targetScenes}-Scene Script (~${estMins}m)</button>
         </div>
       </div>
@@ -22714,20 +23300,12 @@
       // 2. Script & Approval Gate Tab
       else if (S.serTab === "script") {
         const sc = S.draftScript;
-        const task = S.serProdStatus;
+        const task = prodHere;
 
-        if (task && task.status === "rendering") {
-          bodyHtml = `
-        <div class="card" style="padding:40px;text-align:center;background:var(--muted);border-radius:16px">
-          <div class="spin" style="margin:0 auto 16px;width:36px;height:36px"></div>
-          <h3 style="font-size:18px;font-weight:600;margin-bottom:8px">🚀 Production in Progress...</h3>
-          <p class="sub" id="ser_render_msg" style="font-size:14px;margin-bottom:18px">${esc(task.message || 'Synthesizing voiceover, generating 3D visuals, and stitching scenes...')}</p>
-          <div style="max-width:400px;margin:0 auto;height:8px;border-radius:999px;background:var(--line);overflow:hidden">
-            <div id="ser_render_bar" style="height:100%;width:${task.progress || 10}%;background:var(--brand);transition:width 0.4s ease"></div>
-          </div>
-          <span id="ser_render_pct" style="font-size:12px;color:var(--faint);display:block;margin-top:10px">${task.progress || 10}% completed</span>
-        </div>
-      `;
+        if (task && ["rendering", "interrupted", "failed"].includes(task.status) && task.scenes) {
+          bodyHtml = serProdPanelHtml(task, s.id);
+        } else if (task && task.status === "rendering") {
+          bodyHtml = serProdPanelHtml(task, s.id);
         } else if (task && task.status === "completed") {
           const epNum = task.ep_num || epCount || 1;
           bodyHtml = `
@@ -22736,7 +23314,7 @@
             <div>
               <span class="pill ok" style="margin-bottom:6px">Production Complete!</span>
               <h3 style="font-size:20px;font-weight:700">${esc(sc ? sc.title : 'Episode Completed')}</h3>
-              <p class="sub">Duration: ${task.duration || 0}s | 16:9 Master Video + 9:16 Shorts</p>
+              <p class="sub">Duration: ${task.duration || 0}s | 16:9 Master Video + 9:16 Shorts${task.render_seconds ? ` | ⏱️ Rendered in ${serDur(task.render_seconds)}` : ""}</p>
             </div>
             <div class="row" style="gap:8px">
               <button class="btn sm primary" data-act="ser-watch-cinema" data-sid="${esc(s.id)}" data-ep="${epNum}" data-var="master">${ic("play")} Open In-App Cinema</button>
@@ -22824,7 +23402,8 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
           <div>
             <h4 style="font-size:15px;font-weight:700">🎬 Episodic Scene Breakdown (${sc.scenes.length} Scenes)</h4>
-            <p class="sub" id="ser_est_dur_hdr" style="font-size:12px;margin:0">Estimated Duration: ~${Math.round(sc.scenes.reduce((acc, x) => acc + (x.duration_sec || 55), 0))}s (~${(sc.scenes.reduce((acc, x) => acc + (x.duration_sec || 55), 0) / 60).toFixed(1)} mins) · 📺 16:9 Long Video + 📱 9:16 Short</p>
+            ${(sc.cast_check?.missing || []).length ? `<div style="font-size:12px;color:var(--bad);background:var(--bad-soft);border-radius:8px;padding:6px 10px;margin:4px 0">⚠️ No lines for: <b>${sc.cast_check.missing.map(esc).join(", ")}</b>. Press Regenerate script, or add their lines in a scene.</div>` : (sc.cast?.length ? `<div style="font-size:12px;color:var(--good);margin:4px 0">✓ Cast: ${sc.cast.map(esc).join(", ")}</div>` : "")}
+            <p class="sub" id="ser_est_dur_hdr" style="font-size:12px;margin:0">${serLengthText(sc)}</p>
           </div>
           <div class="row" style="gap:8px">
             <button type="button" class="btn sm" data-act="ser-regen-script" style="display:flex;align-items:center;gap:6px" title="Re-generate full episode script with AI">
@@ -22893,6 +23472,14 @@
                 </div>
               </div>
 
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                <span style="font-size:11.5px;font-weight:600;color:var(--dim)">📍 Set:</span>
+                ${serPick("ser_kit_" + i, "📍", "Place", serAuto(SER_KITS, "from the setting"), sn.set?.kit || "", `data-ser-set-field="kit" data-idx="${i}"`, "170px")}
+                ${serPick("ser_time_" + i, "🕒", "Time of day", serAuto(SER_TIMES, "time"), sn.set?.time || "", `data-ser-set-field="time" data-idx="${i}"`, "125px")}
+                ${serPick("ser_wx_" + i, "🌦️", "Weather", serAuto(SER_WEATHERS, "weather"), sn.set?.weather || "", `data-ser-set-field="weather" data-idx="${i}"`, "125px")}
+                <button type="button" class="btn sm ghost" data-act="ser-scene-preview" data-idx="${i}" title="A still of this scene's set and cast in a few seconds" style="height:30px;font-size:11.5px">👁 Preview</button>
+              </div>
+              <div id="ser_prev_${i}"></div>
               <div style="margin-bottom:10px">
                 <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--brand-ink)" class="ser-scene-dlg-label">💬 Spoken Dialogue (${esc(sn.speaker || 'Narrator')}):</label>
                 <textarea rows="3" data-ser-scene-field="dialogue" data-idx="${i}" style="width:100%;font-size:13px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;line-height:1.4" placeholder="Detailed spoken dialogue and narrative for voiceover...">${esc(sn.dialogue || '')}</textarea>
@@ -22926,6 +23513,9 @@
       }
 
       // 3. Character Vault Tab
+      else if (S.serTab === "places") {
+        bodyHtml = serPlacesHtml(s);
+      }
       else if (S.serTab === "cast") {
         const chars = s.characters || [];
         bodyHtml = `
@@ -23019,6 +23609,7 @@
                     <span>📅 <b>Generated:</b> ${esc(createdLabel)}</span>
                     ${updatedLabel ? `<span>🔄 <b>Updated:</b> ${esc(updatedLabel)}</span>` : ''}
                     <span>⏱️ <b>Duration:</b> ${fmt(e.duration || 0)}</span>
+                    ${e.render_seconds ? `<span>⚙️ <b>Rendered in:</b> ${serDur(e.render_seconds)}</span>` : ''}
                     <span>🎬 <b>Scenes:</b> ${(e.script || []).length || 2}</span>
                   </div>
                 </div>
@@ -23135,9 +23726,12 @@
         <button class="tabbtn ${S.serTab === 'pitches' ? 'on' : ''}" data-act="ser-tab" data-t="pitches">${ic("sparkle")} AI Pitches</button>
         <button class="tabbtn ${S.serTab === 'script' ? 'on' : ''}" data-act="ser-tab" data-t="script">${ic("play")} Script Review & Approval</button>
         <button class="tabbtn ${S.serTab === 'cast' ? 'on' : ''}" data-act="ser-tab" data-t="cast">${ic("users")} Character Vault (${charCount})</button>
+        <button class="tabbtn ${S.serTab === 'places' ? 'on' : ''}" data-act="ser-tab" data-t="places">📍 Locations (${(s.locations || []).length})</button>
         <button class="tabbtn ${S.serTab === 'episodes' ? 'on' : ''}" data-act="ser-tab" data-t="episodes">${ic("film")} Episodes (${epCount})</button>
       </div>
 
+      ${prodHere && prodHere.status === "rendering" && S.serTab !== "script" ? serProdMiniHtml(prodHere) : ""}
+      ${prodHere && prodHere.status === "interrupted" && S.serTab !== "script" ? `<div class="pp-mini" id="ser_prod_mini"><b>Episode ${prodHere.ep_num} stopped part-way</b><small>${esc(prodHere.message || "")}</small><button type="button" class="btn sm" data-act="ser-tab" data-t="script">Open</button></div>` : ""}
       <!-- Tab Body -->
       <div>${bodyHtml}</div>
     </div>
@@ -23306,7 +23900,7 @@
       drawShell(); drawJobs(); drawStream(); drawSelBar();
       if (S.view === "overview") drawOverview();
       if (S.view === "discover") drawDiscover();
-      if (S.view === "series") drawSeriesStudio();
+      if (S.view === "series" && !serMediaPlaying()) drawSeriesStudio();
       if (S.view === "library" && $("#libOrganizer")) drawLibraryOrganizer();
       if (S.view === "overview") drawHomeLive();
       if ($("#clog")) drawLog();
@@ -23907,44 +24501,79 @@
         if (a === "ser-mkt-switch") {
           return openNewShowModal(d.mkt);
         }
-        if (a === "ser-use-trend") {
-          const tidx = parseInt(d.tidx, 10);
-          const t = S.currentMarketTrends?.[tidx];
-          if (t) {
-            S.selectedTrend = t;
-            if ($("#modal_ser_title")) $("#modal_ser_title").value = t.title;
-            if ($("#modal_ser_genre")) $("#modal_ser_genre").value = t.genre;
-            setPick("modal_ser_lang", t.default_language || "hi");
-            if ($("#modal_ser_style")) $("#modal_ser_style").value = t.visual_style;
-            if ($("#modal_ser_cast")) $("#modal_ser_cast").value = (t.character_seed || []).map(c => `${c.name} (${c.species || 'Character'})`).join(", ");
-            const col = $("#ser_blueprint_col");
-            if (col) {
-              col.style.borderColor = "var(--brand)";
-              setTimeout(() => { if (col) col.style.borderColor = "var(--line)"; }, 600);
-            }
-            toast(`Applied "${t.title}" Blueprint!`, "ok");
-          }
+        if (a === "ser-prod-scene") {
+          const box = $("#ser_prod_preview"); if (!box) return;
+          box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 8px"><b style="font-size:13px">Scene ${esc(d.idx)}</b><button type="button" class="btn sm ghost" data-act="ser-prod-scene-close">Close</button></div>
+            <video src="/api/series/${encodeURIComponent(d.sid)}/episodes/${encodeURIComponent(d.ep)}/scene/${encodeURIComponent(d.idx)}?t=${Date.now()}" controls autoplay playsinline style="width:100%;max-height:420px;border-radius:12px;background:#000"></video>`;
           return;
+        }
+        if (a === "ser-prod-scene-close") {
+          const box = $("#ser_prod_preview"); if (box) box.innerHTML = "";
+          return;
+        }
+        if (a === "ser-prod-resume") {
+          const done = busy(b, "Resuming…");
+          try {
+            await send(`/api/series/${encodeURIComponent(d.sid)}/episodes/${encodeURIComponent(d.ep)}/resume`, {});
+            S.serProdStatus = { ...(S.serProdStatus || {}), status: "rendering", message: "Starting again…" };
+            serWatchProduction(d.sid, +d.ep);
+            drawSeriesStudio();
+          } catch (e) { toast(e.message || "Could not resume", "bad"); done(); }
+          return;
+        }
+        if (a === "ser-use-trend") {
+          const t = S.currentMarketTrends?.[parseInt(d.tidx, 10)];
+          if (t) { serApplyIdea(t); toast(`Applied "${t.title}"`, "ok"); }
+          return;
+        }
+        if (a === "ser-ideas-more") {
+          return serLoadIdeas(true);
         }
         if (a === "ser-style-preset") {
           if ($("#modal_ser_style") && d.style) {
             $("#modal_ser_style").value = d.style;
-            toast("Applied 3D style preset", "ok");
+            toast("Look applied", "ok");
           }
           return;
         }
+        if (a === "ser-ai-all") {
+          const done = busy(b, "Writing a series idea…");
+          try {
+            const res = await serFetchIdeas("all", 1, { title: "", cast: "" });
+            const t = (res.concepts || [])[0];
+            if (!t) return toast("No idea came back, try again", "warn");
+            serApplyIdea(t);
+            S.currentMarketTrends = [t, ...(S.currentMarketTrends || [])];
+            if ($("#ser_trends_container")) $("#ser_trends_container").innerHTML = serIdeasHtml(S.currentMarketTrends, res.source);
+            if ($("#ser_ideas_count")) $("#ser_ideas_count").textContent = `${S.currentMarketTrends.length} Blueprints`;
+            toast(`Suggested: "${t.title}"`, "ok");
+          } catch (e) { toast(e.message || "Could not get an idea", "bad"); }
+          finally { done(); }
+          return;
+        }
         if (a === "ser-ai-title") {
-          const cat = $("#modal_ser_genre")?.value || "3D Adventure";
-          const castLead = ($("#modal_ser_cast")?.value || "").split(",")[0]?.split("(")[0]?.trim() || "Friends";
-          const pool = [
-            `Tales of ${castLead}: The Golden Key Mystery`,
-            `${castLead} & The Enchanted Grove`,
-            `The Secret Adventures of ${castLead}`,
-            `Wonder Tales: The Quest of ${castLead}`
-          ];
-          const choice = pool[Math.floor(Math.random() * pool.length)];
-          if ($("#modal_ser_title")) $("#modal_ser_title").value = choice;
-          toast(`AI suggested: "${choice}"`, "ok");
+          // ask once for a few titles, then each press shows the next one
+          if (!S.serTitleIdeas?.length) {
+            const done = busy(b, "Thinking…");
+            const now = ($("#modal_ser_title")?.value || "").trim().toLowerCase();
+            try { S.serTitleIdeas = ((await serFetchIdeas("title", 5)).concepts || []).map(c => c.title).filter(t => t && t.trim().toLowerCase() !== now); }
+            catch (e) { S.serTitleIdeas = []; toast(e.message || "Could not get titles", "bad"); }
+            finally { done(); }
+          }
+          const t = S.serTitleIdeas?.shift();
+          if (t && $("#modal_ser_title")) { $("#modal_ser_title").value = t; S.serAutoTitle = t; toast(`Title: "${t}"`, "ok"); }
+          return;
+        }
+        if (a === "ser-ai-cast") {
+          if (!S.serCastIdeas?.length) {
+            const done = busy(b, "Casting…");
+            const now = ($("#modal_ser_cast")?.value || "").trim().toLowerCase();
+            try { S.serCastIdeas = ((await serFetchIdeas("cast", 3)).concepts || []).filter(c => c.character_seed?.length && serCastText(c).toLowerCase() !== now); }
+            catch (e) { S.serCastIdeas = []; toast(e.message || "Could not get a cast", "bad"); }
+            finally { done(); }
+          }
+          const c = S.serCastIdeas?.shift();
+          if (c && $("#modal_ser_cast")) { serRememberCast(c); $("#modal_ser_cast").value = serCastText(c); toast("Cast suggested", "ok"); }
           return;
         }
         if (a === "ser-quick-lang") {
@@ -23954,6 +24583,31 @@
           S.serPitches = null; S.draftScript = null;
           await loadSeriesData(true);
           return drawSeriesStudio();
+        }
+        if (a === "ser-from-brief") {
+          const text = $("#modal_ser_brief")?.value?.trim();
+          if (!text) return toast("Paste your idea, story or characters first", "warn");
+          const done = busy(b, "Reading your idea…");
+          let r;
+          try { r = await send("/api/series/from-brief", { text, market: S.activeNewShowMkt || "IN" }); }
+          catch (e) { done(); return toast(e.message || "Could not read this idea", "bad"); }
+          done();
+          S.serBrief = text; S.serBriefResult = r;
+          // format first (its change fills defaults), then everything the AI read from the idea
+          if (r.format) { setPick("modal_ser_format", r.format); S.newShowFormat = r.format;
+            const f = (S.videoFormats || []).find(x => x.id === r.format);
+            if (f) { if ($("#ser_looks")) $("#ser_looks").innerHTML = serLooksHtml(f); if ($("#modal_ser_fmt_desc")) $("#modal_ser_fmt_desc").textContent = f.description; setPick("modal_ser_ratio", f.aspect_ratio); } }
+          if ($("#modal_ser_title")) $("#modal_ser_title").value = r.title || "";
+          if ($("#modal_ser_genre")) $("#modal_ser_genre").value = r.genre || "";
+          if (r.language) setPick("modal_ser_lang", r.language);
+          if ($("#modal_ser_style") && r.visual_style) $("#modal_ser_style").value = r.visual_style;
+          S.serCastDetails = S.serCastDetails || {};
+          (r.characters || []).forEach(c => { S.serCastDetails[(c.name || "").toLowerCase()] = c; });
+          if ($("#modal_ser_cast")) $("#modal_ser_cast").value = (r.characters || []).map(c => `${c.name} (${c.species || "Character"})`).join(", ");
+          S.serAutoTitle = r.title || "";
+          const col = $("#ser_blueprint_col"); if (col) { col.style.borderColor = "var(--brand)"; setTimeout(() => { col.style.borderColor = "var(--line)"; }, 700); }
+          toast(`Read your idea: ${(r.characters || []).length} characters, Episode 1 ready`, "ok");
+          return;
         }
         if (a === "ser-modal-create-show") {
           const title = $("#modal_ser_title")?.value?.trim();
@@ -23979,11 +24633,13 @@
               const m = p.match(/^([^(]+)(?:\(([^)]+)\))?/);
               const name = m ? m[1].trim() : p.trim();
               const species = m && m[2] ? m[2].trim() : "Character";
+              const known = (S.serCastDetails || {})[name.toLowerCase()];
+              const sameKind = known && (known.species || "").toLowerCase() === species.toLowerCase();
               chars.push({
                 name,
                 species,
-                visual_anchor: lookOf(species),
-                personality: fmtObj && fmtObj.category !== "Kids & Family" ? "" : "Playful, adventurous and friendly",
+                visual_anchor: sameKind && known.visual_anchor ? known.visual_anchor : lookOf(species),
+                personality: sameKind && known.personality ? known.personality : (fmtObj && fmtObj.category !== "Kids & Family" ? "" : "Playful, adventurous and friendly"),
                 voice_id: lang === "hi" ? "hi-IN-MadhurNeural" : "en-US-ChristopherNeural"
               });
             }
@@ -24000,10 +24656,16 @@
               visual_style: style,
               aspect_ratio: ratio,
               format,
-              characters: chars
+              characters: chars,
+              brief: $("#modal_ser_brief")?.value?.trim() || ""
             });
           } catch (err) { done(); return toast(err.message, "bad"); }
           $("#formdlg").close();
+          // from a pasted idea: Episode 1's story is ready in the idea box and its cast is ticked
+          const fe = S.serBriefResult?.first_episode;
+          S.serSeedIdea = fe ? [fe.title, fe.premise].filter(Boolean).join(": ") : "";
+          S.epCast = S.serBriefResult ? (chars || []).map(c => c.name) : null;
+          S.serBrief = ""; S.serBriefResult = null;
           S.activeSeriesId = res.id;
           S.activeSeries = res;
           S.seriesOrganizer = null;
@@ -24026,16 +24688,80 @@
           const voice_id = $("#modal_char_voice")?.value || "en-US-ChristopherNeural";
           const visual_anchor = $("#modal_char_visual")?.value?.trim() || "cute 3d cartoon character, friendly smile";
           const personality = $("#modal_char_pers")?.value?.trim() || "";
+          // the AI's voice casting (its own pitch and speed) is kept while the voice picked is still the suggested one
+          const ai = S.charIdea && S.charIdea.voice_id === voice_id ? { voice_rate: S.charIdea.voice_rate, voice_pitch: S.charIdea.voice_pitch } : {};
+          // the AI's 3D design goes with it while the look text is still the suggested one (else it is designed again)
+          if (S.charIdea && S.charIdea.toon && (S.charIdea.visual_anchor || "") === visual_anchor) ai.toon = S.charIdea.toon;
           // keep the dialog open with a working button until the portrait is made (can take a minute)
           const done = busy(b, "Generating portrait…");
           try {
-            await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/characters`, { name, species, voice_id, visual_anchor, personality });
+            await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/characters`, { name, species, voice_id, visual_anchor, personality, ...ai });
           } catch (err) { done(); return toast(err.message, "bad"); }
           $("#formdlg").close();
+          if (S.castAddPending) { S.epCast = [...new Set([...(S.epCast || []), name])]; S.castAddPending = false; }   // added from the cast: in this episode
           toast(`${name} added to the vault`, "ok");
           S.avatarVer = Date.now();
           await loadSeriesData(true);
           return drawSeriesStudio();
+        }
+        if (a === "ser-loc-save") {
+          const lid = d.lid;
+          const body = { name: $("#loc_name_" + lid)?.value || "", kit: $("#loc_kit_" + lid)?.value || "", era: $("#loc_era_" + lid)?.value || "",
+                         culture: $("#loc_cul_" + lid)?.value || "", new_layout: !!d.relayout };
+          const done = busy(b, d.relayout ? "New layout…" : "Saving…");
+          try { await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/locations/${encodeURIComponent(lid)}`, body); }
+          catch (e) { done(); return toast(e.message || "Could not save the place", "bad"); }
+          done(); toast(d.relayout ? "New layout: the picture is being made" : "Place saved", "ok");
+          await loadSeriesData(true); return drawSeriesStudio();
+        }
+        if (a === "ser-scene-preview") {
+          syncDomToDraftScript();
+          const sc = S.draftScript?.scenes?.[+d.idx]; if (!sc) return;
+          const box = $("#ser_prev_" + d.idx);
+          const done = busy(b, "Making preview…");
+          try {
+            const r = await fetch(`/api/series/${encodeURIComponent(S.activeSeriesId)}/preview-scene`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scene: sc }) });
+            if (!r.ok) { let m = "Could not make the preview"; try { m = (await r.json()).detail || m; } catch { } throw new Error(m); }
+            const url = URL.createObjectURL(await r.blob());
+            if (box) box.innerHTML = `<div style="position:relative;margin-bottom:10px"><img src="${url}" alt="Scene preview" style="width:100%;max-height:360px;object-fit:contain;border-radius:10px;background:#141624" /><button type="button" class="btn sm ghost" data-act="ser-scene-preview-close" data-idx="${d.idx}" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,0.85)">Close</button></div>`;
+          } catch (e) { toast(e.message || "Could not make the preview", "bad"); }
+          finally { done(); }
+          return;
+        }
+        if (a === "ser-scene-preview-close") {
+          const box = $("#ser_prev_" + d.idx); if (box) box.innerHTML = "";
+          return;
+        }
+        if (a === "ser-cast-toggle") {
+          const n = d.name; S.epCast = S.epCast || [];
+          S.epCast = S.epCast.includes(n) ? S.epCast.filter(x => x !== n) : [...S.epCast, n];
+          return drawSeriesStudio();
+        }
+        if (a === "ser-cast-newchar") {
+          // the AI suggestions in the dialog are told what this episode is about (your own idea, or the story ideas)
+          const own = $("#ser_custom_prompt")?.value?.trim();
+          S.charContext = own || (S.serPitches || []).map(p => `${p.title}: ${p.logline}`).join(" | ");
+          S.castAddPending = true;
+          return openNewCharModal();
+        }
+        if (a === "ser-char-ai") {
+          // the episode being written (if any) helps the AI make someone who fits the story right now
+          const sc = S.draftScript;
+          const episode = S.castAddPending && S.charContext ? S.charContext : (sc ? `${sc.title || ""}. ${sc.synopsis || ""}` : "");
+          const done = busy(b, "Creating…");
+          try {
+            const res = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/characters/suggest`,
+              { hint: $("#modal_char_hint")?.value || "", episode, count: 3 });
+            S.charIdeas = res.characters || [];
+            if (!S.charIdeas.length) return toast("No idea came back, try again", "warn");
+            serCharApply(0);
+            if (res.source === "builtin") toast("Built-in idea: set up an AI service in Settings for characters written for your story", "warn");
+          } catch (e) { toast(e.message || "Could not create a character", "bad"); }
+          finally { done(); }
+          return;
+        }
+        if (a === "ser-char-idea") {
+          return serCharApply(+d.i);
         }
         if (a === "ser-char-preview") {
           return openCharPreviewModal(d.cid);
@@ -24047,18 +24773,31 @@
           return openEpisodePlayerModal(d.sid, d.ep, d.var);
         }
         if (a === "ser-ep-ai-title") {
+          // titles written by the AI from this episode's own story; each press shows the next one, all are clickable
           const f = $("#ep_dlg_title");
           if (!f) return;
-          const pool = [
-            "The Secret of the Golden Meadow",
-            "A Starry Night Over the Pasture",
-            "The Great Whispering Wind Mystery",
-            "The Lost Melody of the Woodland",
-            "The Brave Friendship Adventure"
-          ];
-          const pick = pool[Math.floor(Math.random() * pool.length)];
+          const key = `${d.sid}:${d.ep}`;
+          if (S.epTitleKey !== key || !(S.epTitles || []).length) {
+            const done = busy(b, "Writing titles…");
+            try {
+              const res = await send(`/api/series/${encodeURIComponent(d.sid)}/episodes/${encodeURIComponent(d.ep)}/title-ideas`,
+                { summary: $("#ep_dlg_synopsis")?.value || "", current: f.value || "" });
+              S.epTitles = res.titles || []; S.epTitleKey = key; S.epTitleAt = 0;
+              if (res.source === "builtin") toast("Built-in titles: set up an AI service in Settings for titles written from the story", "warn");
+            } catch (e) { done(); return toast(e.message || "Could not write titles", "bad"); }
+            done();
+            if (!S.epTitles.length) return toast("No title came back, try again", "warn");
+          }
+          const pick = S.epTitles[S.epTitleAt % S.epTitles.length]; S.epTitleAt++;
           f.value = pick;
-          toast(`AI suggested: "${pick}"`, "ok");
+          let box = $("#ep_dlg_title_ideas");
+          if (!box) { box = document.createElement("div"); box.id = "ep_dlg_title_ideas"; box.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"; f.after(box); }
+          box.innerHTML = S.epTitles.map(t => `<button type="button" class="btn sm ${t === pick ? "primary" : "ghost"}" data-act="ser-ep-title-pick" data-t="${esc(t)}" style="font-size:11.5px;padding:3px 10px">${esc(t)}</button>`).join("");
+          return;
+        }
+        if (a === "ser-ep-title-pick") {
+          const f = $("#ep_dlg_title"); if (f) f.value = d.t;
+          $$("#ep_dlg_title_ideas button").forEach(x => { x.className = `btn sm ${x.dataset.t === d.t ? "primary" : "ghost"}`; });
           return;
         }
         if (a === "ser-ep-save") {
@@ -24128,17 +24867,22 @@
           return drawSeriesStudio();
         }
         if (a === "ser-char-regen") {
-          const done = busy(b, "Generating look…");
+          // New look: a different design each press (the description in the preview box is used when it changed);
+          // Previous look: the one before comes back
+          const mode = d.mode || "new";
+          const dna = $("#char_dna_edit")?.value;
+          const done = busy(b, mode === "previous" ? "Going back…" : "Designing a new look…");
+          let res;
           try {
-            const res = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/characters/${encodeURIComponent(d.cid)}/avatar`, {});
-            toast("3D look updated!", "ok");
-            S.avatarVer = Date.now();
-            const mImg = $("#char_modal_img");
-            if (mImg) mImg.src = res.avatar_url;
-            await loadSeriesData(true);
-            drawSeriesStudio();
-          } catch (err) { toast(err.message, "bad"); }
-          finally { done(); }
+            res = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/characters/${encodeURIComponent(d.cid)}/avatar`,
+              { mode, ...(dna != null ? { visual_anchor: dna } : {}) });
+          } catch (err) { done(); return toast(err.message, "bad"); }
+          done();
+          toast(mode === "previous" ? "Previous look is back" : "New 3D look made", "ok");
+          S.avatarVer = Date.now();
+          await loadSeriesData(true);
+          if ($("#formdlg").open && $("#char_modal_img")) openCharPreviewModal(d.cid);   // the preview shows the new look and buttons
+          drawSeriesStudio();
           return;
         }
         if (a === "ser-fetch-pitches") {
@@ -24168,7 +24912,9 @@
             S.draftScript = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/script`, {
               pitch,
               target_scenes: targetScenes,
-              scene_duration: sceneDur
+              scene_duration: sceneDur,
+              cast: serEpisodeCast(pitch),
+              newcomer: !!S.epNewcomer && !pitch.new_character
             });
             S.serTab = "script";
             S.serProdStatus = null;
@@ -24186,7 +24932,9 @@
             S.draftScript = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/script`, {
               pitch: promptText,
               target_scenes: targetScenes,
-              scene_duration: sceneDur
+              scene_duration: sceneDur,
+              cast: serEpisodeCast(null),
+              newcomer: !!S.epNewcomer
             });
             S.serTab = "script";
             S.serProdStatus = null;
@@ -24306,7 +25054,9 @@
             S.draftScript = await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/script`, {
               pitch: premise,
               target_scenes: targetScenes,
-              scene_duration: sceneDur
+              scene_duration: sceneDur,
+              cast: S.draftScript?.cast || serEpisodeCast(null),
+              newcomer: !!S.epNewcomer
             });
             toast(`Generated ${S.draftScript?.scenes?.length || 0} scenes (~${Math.round((targetScenes * sceneDur) / 60)}m)!`, "ok");
           } catch (err) { toast(err.message, "bad"); }
@@ -24319,43 +25069,12 @@
           const done = busy(b, "Launching production…");
           try {
             await send(`/api/series/${encodeURIComponent(S.activeSeriesId)}/episodes/${epNum}/approve`, { script: S.draftScript });
-            S.serProdStatus = { status: "rendering", progress: 10, message: "Production started..." };
+            S.serProdStatus = { status: "rendering", progress: 0, percent: 0, ep_num: epNum, message: "Starting…", started_at: Date.now() / 1000 - (S.serClockOff || 0), scenes: [] };
+            S.serProdSid = S.activeSeriesId;
+            S.serTab = "script";
+            S.epCast = null; S.epNewcomer = false;
             drawSeriesStudio();
-
-            if (_serPollTimer) clearInterval(_serPollTimer);
-            _serPollTimer = setInterval(async () => {
-              try {
-                const st = await api(`/api/series/${encodeURIComponent(S.activeSeriesId)}/episodes/${epNum}/status`);
-                S.serProdStatus = st;
-                drawShell();
-                if (st.status === "completed" || st.status === "failed" || st.status === "not_found") {
-                  clearInterval(_serPollTimer);
-                  _serPollTimer = null;
-                  if (st.status === "not_found") S.serProdStatus = null;
-                  await loadSeriesData(true);
-                  drawShell();
-                  if (st.status === "completed") {
-                    toast(`Episode ${epNum} production complete!`, "ok");
-                  } else if (st.status === "failed") {
-                    toast(`Episode ${epNum} production encountered an error`, "bad");
-                  }
-                  if (S.view === "series") drawSeriesStudio();
-                  return;
-                }
-                if (S.view === "series") {
-                  const pBar = $("#ser_render_bar");
-                  const pMsg = $("#ser_render_msg");
-                  const pPct = $("#ser_render_pct");
-                  if (pBar && pMsg && pPct && S.serTab === "script") {
-                    pBar.style.width = (st.progress || 10) + "%";
-                    pMsg.textContent = st.message || "Rendering...";
-                    pPct.textContent = (st.progress || 10) + "% completed";
-                  } else {
-                    drawSeriesStudio();
-                  }
-                }
-              } catch { }
-            }, 2500);
+            serWatchProduction(S.activeSeriesId, epNum);
           } catch (err) { toast(err.message, "bad"); done(); }
           return;
         }

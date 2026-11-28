@@ -333,6 +333,8 @@ def explain(e, about: str = "") -> str:
     status = m.group(1) if m else ""
     if is_busy(e):
         return f"{service} is very busy right now. Try again in a minute, or pick another model."
+    if "free tier is not available" in low:
+        return f"{service}: the free tier is not available for this key's project. Set up billing for it, or use another AI service."
     if status in ("401", "403") or "api key" in low or "api_key" in low or "unauthorized" in low or "permission" in low:
         return f"{service} refused the key. Paste a working key on the AI page."
     if "no longer available" in low or "deprecated" in low or "retired" in low or "discontinued" in low:

@@ -18,6 +18,7 @@ os.environ["PEAKCUT_DATA"] = str(data)
 os.environ["PEAKCUT_IMAGE_PROVIDERS"] = "procedural"
 os.environ["PEAKCUT_VIDEO_PROVIDER"] = "kenburns"
 os.environ["PEAKCUT_MOTION_SUPERSAMPLE"] = "1"
+os.environ["PEAKCUT_3D"] = "0"   # this file checks the picture pipeline; tests/test_anim3d.py checks 3D
 
 from studio import concat, formats, production, providers, soundtrack, tts  # noqa: E402
 
